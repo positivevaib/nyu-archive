@@ -9,7 +9,7 @@ public class CallingClass {
 
 		System.out.print("Enter a sentence to parse: ");
 
-		String sentence = input.nextLine();
+		String sentence = input.nextLine().toLowerCase();
 
 		CYKParser parser = new CYKParser(sentence);
 
