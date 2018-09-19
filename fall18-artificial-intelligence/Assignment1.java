@@ -58,7 +58,7 @@ public class Assignment1 {
 			System.out.println("This sentence cannot be parsed.");
 		else {
 			recursivePrint(parse, indentation);
-			System.out.println("\nProbability = " + parse.prob);
+			System.out.printf("\nProbability = %1.2e\n", parse.prob);
 		}
 	}
 
