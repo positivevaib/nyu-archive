@@ -18,13 +18,23 @@ public class Assignment1 {
 				Tree[][][] chart = parser.parse();
 
 				System.out.println("\n" + sentence + "\n");
+				System.out.println("Most Likely Parse\n");
 				printParse(chart, sentence, 0);
+
+				chart = parser.parseAlt();
+
+				if (chart != null) {
+					System.out.println("\nSecond Most Likely Parse\n");
+					printParse(chart, sentence, 0);
+				}
+				else
+					System.out.println("\nNo Other Parse Available\n");
 			}
 			
 			System.out.println();
 		}
 		catch (FileNotFoundException e) {
-			System.out.println("\nInput file not found.\n");
+			System.out.println("\nFile not found.\n");
 		}
 
 		if (args.length != 0) {
@@ -38,7 +48,17 @@ public class Assignment1 {
 				Tree[][][] chart = parser.parse();
 
 				System.out.println("\n" + sentence + "\n");
+				System.out.println("Most Likely Parse\n");
 				printParse(chart, sentence, 0);
+
+				chart = parser.parseAlt();
+
+				if (chart != null) {
+					System.out.println("\nSecond Most Likely Parse\n");
+					printParse(chart, sentence, 0);
+				}
+				else
+					System.out.println("\nNo Other Parse Available\n");
 			}
 
 			System.out.println();
@@ -97,7 +117,7 @@ class Tree {
 }
 
 enum NonTerm {
-	S("S", new String[][] {{"Noun", "Verb", "0.2"}, {"Noun", "VerbAndObject", "0,3"}, {"Noun", "VPWithPPList", "0.1"}, {"NP", "Verb", "0.2"}, {"NP", "VerbAndObject", "0.1"}, {"NP", "VPWithPPList", "0.1"}}), 
+	S("S", new String[][] {{"Noun", "Verb", "0.2"}, {"Noun", "VerbAndObject", "0.3"}, {"Noun", "VPWithPPList", "0.1"}, {"NP", "Verb", "0.2"}, {"NP", "VerbAndObject", "0.1"}, {"NP", "VPWithPPList", "0.1"}}), 
 	NP("NP", new String[][] {{"Noun", "PP", "0.8"}, {"Noun", "PPList", "0.2"}}), 
 	PP("PP", new String[][] {{"Prep", "Noun", "0.6"}, {"Prep", "NP", "0.4"}}), 
 	PPList("PPList", new String[][] {{"PP", "PP", "0.6"}, {"PP", "PPList", "0.4"}}), 
@@ -126,13 +146,13 @@ class CYKParser {
 	}
 
 	public Tree[][][] parse() {
-		//Map NonTerm elements to chart indices
+		// Map NonTerm elements to chart indices
 		ArrayList<String> chart_indices = new ArrayList<>();
 		for (NonTerm e : NonTerm.values()) {
 			chart_indices.add(e.symbol);
 		}
 
-		//Parse
+		// Parse
 		int N = sentence.length;
 		for (int i = 0; i < N; i++) {
 			String word = sentence[i];
@@ -171,7 +191,58 @@ class CYKParser {
 				}
 			}
 		}
-		
+
 		return this.chart;
 	}
-}
+
+		public Tree[][][] parseAlt() {
+
+			this.chart = parse();
+
+			// Map NonTerm elements to chart indices
+			ArrayList<String> chart_indices = new ArrayList<>();
+			for (NonTerm e : NonTerm.values()) {
+				chart_indices.add(e.symbol);
+			}
+
+			// Parse
+			int len = sentence.length;
+
+			boolean altAvail = false;
+
+			int i = 0;
+			int j = i + len - 1;
+			for (NonTerm M : NonTerm.values()) {
+				if (M.symbol.equals("S")) {
+					double oldProb = (this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob;
+
+					(this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob = 0.0;
+
+					for (int k = i; k <= (j - 1); k++) {
+						for (String[] rule : M.rules) {
+							try {
+								double newProb = (this.chart[chart_indices.indexOf(rule[0])][i][k].prob) * (this.chart[chart_indices.indexOf(rule[1])][k+1][j].prob) * Double.parseDouble(rule[2]);
+								
+								if (newProb < oldProb && newProb > (this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob) {
+									(this.chart[chart_indices.indexOf("S")][i][j]).left = this.chart[chart_indices.indexOf(rule[0])][i][k];
+									(this.chart[chart_indices.indexOf("S")][i][j]).right = this.chart[chart_indices.indexOf(rule[1])][k + 1][j];
+									(this.chart[chart_indices.indexOf("S")][i][j]).prob = newProb;
+									altAvail = true;
+								}
+							}
+							catch (Exception e) {
+								continue;
+							}
+						}
+					}
+
+					break;
+				}
+			}
+
+			if (altAvail)
+				return this.chart;
+			else
+				return null;
+		}
+	}
