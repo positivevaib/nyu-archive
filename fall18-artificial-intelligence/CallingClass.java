@@ -1,8 +1,8 @@
 package artificial_intelligence_fall18;
 
 import java.util.Scanner;
-import java.util.File;
-import java.util.FileNotFoundException;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
 public class CallingClass {
@@ -17,7 +17,9 @@ public class CallingClass {
 
 				Tree[][][] chart = parser.parse();
 
-				printParse(chart, sentence, indentation);
+				System.out.println(sentence + "\n");
+				printParse(chart, sentence, 0);
+				System.out.println();
 			}
 		}
 		catch (FileNotFoundException e) {
@@ -47,7 +49,7 @@ public class CallingClass {
 			System.out.print(" ");
 		}
 
-		if (parse.phrase.rules[0].length == 2)
+		if (parse.left == null)
 			System.out.println(parse.phrase.symbol + " " + parse.word);
 		else {
 			System.out.println(parse.phrase.symbol);
