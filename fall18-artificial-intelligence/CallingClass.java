@@ -1,6 +1,7 @@
 package artificial_intelligence_fall18;
 
 import java.util.Scanner;
+import java.util.ArrayList;
 
 public class CallingClass {
 	public static void main(String args[]) {
@@ -14,7 +15,7 @@ public class CallingClass {
 
 		Tree[][][] chart = parser.parse();
 
-
+		printParse(chart, sentence, indentation);
 	}
 
 	public static void printParse(Tree[][][] chart, String sentence, int indentation) {
@@ -24,9 +25,9 @@ public class CallingClass {
 			chart_indices.add(e.symbol);
 		}
 
-		Tree parse = chart[chart_indices.indexOf("S")][0][sentence.split().length - 1];
+		Tree parse = chart[chart_indices.indexOf("S")][0][sentence.split(" ").length - 1];
 
-		recursivePrint(parse, 0);
+		recursivePrint(parse, indentation);
 	}
 
 	public static void recursivePrint(Tree parse, int indentation) {
