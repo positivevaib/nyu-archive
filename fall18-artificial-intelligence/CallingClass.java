@@ -1,21 +1,28 @@
 package artificial_intelligence_fall18;
 
 import java.util.Scanner;
+import java.util.File;
+import java.util.FileNotFoundException;
 import java.util.ArrayList;
 
 public class CallingClass {
 	public static void main(String args[]) {
-		Scanner input = new Scanner(System.in);
+		try {
+			Scanner reader = new Scanner(new File("test.txt"));
 
-		System.out.print("Enter a sentence to parse: ");
+			while (reader.hasNext()) {
+				String sentence = reader.nextLine().toLowerCase();
 
-		String sentence = input.nextLine().toLowerCase();
+				CYKParser parser = new CYKParser(sentence);
 
-		CYKParser parser = new CYKParser(sentence);
+				Tree[][][] chart = parser.parse();
 
-		Tree[][][] chart = parser.parse();
-
-		printParse(chart, sentence, indentation);
+				printParse(chart, sentence, indentation);
+			}
+		}
+		catch (FileNotFoundException e) {
+			System.out.println("Input file not found.");
+		}
 	}
 
 	public static void printParse(Tree[][][] chart, String sentence, int indentation) {
