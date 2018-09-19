@@ -1,7 +1,6 @@
 package artificial_intelligence_fall18;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class CYKParser {
 	String[] sentence;
@@ -38,7 +37,7 @@ public class CYKParser {
 					if (M.rules[0].length == 3) {
 						this.chart[M.ordinal()][i][j] = new Tree(M, i, j, null, null, null, 0.0);
 
-						for (int k = i; k < (j - 1); k++) {
+						for (int k = i; k <= (j - 1); k++) {
 							for (String[] rule : M.rules) {
 								try {
 									double newProb = (this.chart[chart_indices.indexOf(rule[0])][i][k]).prob * (this.chart[chart_indices.indexOf(rule[1])][k + 1][j]).prob * Double.parseDouble(rule[2]);
