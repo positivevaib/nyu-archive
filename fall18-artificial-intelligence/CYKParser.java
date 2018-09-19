@@ -31,7 +31,7 @@ public class CYKParser {
 			}
 		}
 		
-		for (int len = 1; len < N; len++) {
+		for (int len = 2; len <= N; len++) {
 			for (int i = 0; i < (N + 1 - len); i++) {
 				int j = i + len - 1;
 				for (NonTerm M : NonTerm.values()) {
