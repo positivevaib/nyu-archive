@@ -40,12 +40,17 @@ public class CYKParser {
 
 						for (int k = i; k < (j - 1); k++) {
 							for (String[] rule : M.rules) {
-								double newProb = (this.chart[chart_indices.indexOf(rule[0])][i][k]).prob * (this.chart[chart_indices.indexOf(rule[1])][k + 1][j]).prob * Double.parseDouble(rule[2]);
+								try {
+									double newProb = (this.chart[chart_indices.indexOf(rule[0])][i][k]).prob * (this.chart[chart_indices.indexOf(rule[1])][k + 1][j]).prob * Double.parseDouble(rule[2]);
 
-								if (newProb > (this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob) {
-									(this.chart[chart_indices.indexOf(M.symbol)][i][j]).left = this.chart[chart_indices.indexOf(rule[0])][i][k];
-									(this.chart[chart_indices.indexOf(M.symbol)][i][j]).right = this.chart[chart_indices.indexOf(rule[1])][k + 1][j];
-									(this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob = newProb;
+									if (newProb > (this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob) {
+										(this.chart[chart_indices.indexOf(M.symbol)][i][j]).left = this.chart[chart_indices.indexOf(rule[0])][i][k];
+										(this.chart[chart_indices.indexOf(M.symbol)][i][j]).right = this.chart[chart_indices.indexOf(rule[1])][k + 1][j];
+										(this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob = newProb;
+									}
+								}
+								catch (Exception e) {
+									continue;
 								}
 							}
 						}

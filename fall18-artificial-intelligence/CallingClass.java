@@ -27,7 +27,12 @@ public class CallingClass {
 
 		Tree parse = chart[chart_indices.indexOf("S")][0][sentence.split(" ").length - 1];
 
-		recursivePrint(parse, indentation);
+		if (parse.left == null)
+			System.out.println("This sentence cannot be parsed.");
+		else {
+			recursivePrint(parse, indentation);
+			System.out.println("\nProbability = " + parse.prob);
+		}
 	}
 
 	public static void recursivePrint(Tree parse, int indentation) {
@@ -37,9 +42,10 @@ public class CallingClass {
 
 		if (parse.phrase.rules[0].length == 2)
 			System.out.println(parse.phrase.symbol + " " + parse.word);
-		else
+		else {
 			System.out.println(parse.phrase.symbol);
 			recursivePrint(parse.left, indentation + 3);
 			recursivePrint(parse.right, indentation + 3);
+		}
 	}
 }
