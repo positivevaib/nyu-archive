@@ -30,6 +30,8 @@ public class Assignment1 {
 				else
 					System.out.println("\nNo Other Parse Available\n");
 			}
+
+			reader.close();
 			
 			System.out.println();
 		}
