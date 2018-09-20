@@ -15,7 +15,7 @@ public class Assignment1 {
 
 				CYKParser parser = new CYKParser(sentence);
 
-				Tree[][][] chart = parser.parse();
+				Node[][][] chart = parser.parse();
 
 				System.out.println("\n" + sentence + "\n");
 				System.out.println("Most Likely Parse\n");
@@ -47,7 +47,7 @@ public class Assignment1 {
 
 				CYKParser parser = new CYKParser(sentence);
 
-				Tree[][][] chart = parser.parse();
+				Node[][][] chart = parser.parse();
 
 				System.out.println("\n" + sentence + "\n");
 				System.out.println("Most Likely Parse\n");
@@ -67,14 +67,14 @@ public class Assignment1 {
 		}
 	}
 
-	public static void printParse(Tree[][][] chart, String sentence, int indentation) {
-		//Map NonTerm elements to chart indices
+	public static void printParse(Node[][][] chart, String sentence, int indentation) {
+		//Map NonTerminal elements to chart indices
 		ArrayList<String> chart_indices = new ArrayList<>();
-		for (NonTerm e : NonTerm.values()) {
+		for (NonTerminal e : NonTerminal.values()) {
 			chart_indices.add(e.symbol);
 		}
 
-		Tree parse = chart[chart_indices.indexOf("S")][0][sentence.split(" ").length - 1];
+		Node parse = chart[chart_indices.indexOf("S")][0][sentence.split(" ").length - 1];
 
 		if (parse.left == null)
 			System.out.println("This sentence cannot be parsed.");
@@ -84,7 +84,7 @@ public class Assignment1 {
 		}
 	}
 
-	public static void recursivePrint(Tree parse, int indentation) {
+	public static void recursivePrint(Node parse, int indentation) {
 		for (int i = 0; i < indentation; i++) {
 			System.out.print(" ");
 		}
@@ -99,15 +99,15 @@ public class Assignment1 {
 	}
 }
 
-class Tree {
-	NonTerm phrase;
+class Node {
+	NonTerminal phrase;
 	int startPhrase, endPhrase;
 	String word;
-	Tree left;
-	Tree right;
+	Node left;
+	Node right;
 	double prob;
 	
-	public Tree(NonTerm phrase, int startPhrase, int endPhrase, String word, Tree left, Tree right, double prob) {
+	public Node(NonTerminal phrase, int startPhrase, int endPhrase, String word, Node left, Node right, double prob) {
 		this.phrase = phrase;
 		this.startPhrase = startPhrase;
 		this.endPhrase = endPhrase;
@@ -118,7 +118,7 @@ class Tree {
 	}
 }
 
-enum NonTerm {
+enum NonTerminal {
 	S("S", new String[][] {{"Noun", "Verb", "0.2"}, {"Noun", "VerbAndObject", "0.3"}, {"Noun", "VPWithPPList", "0.1"}, {"NP", "Verb", "0.2"}, {"NP", "VerbAndObject", "0.1"}, {"NP", "VPWithPPList", "0.1"}}), 
 	NP("NP", new String[][] {{"Noun", "PP", "0.8"}, {"Noun", "PPList", "0.2"}}), 
 	PP("PP", new String[][] {{"Prep", "Noun", "0.6"}, {"Prep", "NP", "0.4"}}), 
@@ -132,7 +132,7 @@ enum NonTerm {
 	String symbol;
 	String[][] rules;
 	
-	private NonTerm(String symbol, String[][] rules) {
+	private NonTerminal(String symbol, String[][] rules) {
 		this.symbol = symbol;
 		this.rules = rules;
 	}
@@ -140,17 +140,17 @@ enum NonTerm {
 
 class CYKParser {
 	String[] sentence;
-	Tree[][][] chart;
+	Node[][][] chart;
 	
 	public CYKParser(String sentence) {
 		this.sentence = sentence.split(" ");
-		this.chart = new Tree[NonTerm.values().length][sentence.split(" ").length][sentence.split(" ").length];
+		this.chart = new Node[NonTerminal.values().length][sentence.split(" ").length][sentence.split(" ").length];
 	}
 
-	public Tree[][][] parse() {
-		// Map NonTerm elements to chart indices
+	public Node[][][] parse() {
+		// Map NonTerminal elements to chart indices
 		ArrayList<String> chart_indices = new ArrayList<>();
-		for (NonTerm e : NonTerm.values()) {
+		for (NonTerminal e : NonTerminal.values()) {
 			chart_indices.add(e.symbol);
 		}
 
@@ -158,10 +158,10 @@ class CYKParser {
 		int N = sentence.length;
 		for (int i = 0; i < N; i++) {
 			String word = sentence[i];
-			for (NonTerm POS : NonTerm.values()) {
+			for (NonTerminal POS : NonTerminal.values()) {
 				for (String[] rule : POS.rules) {
 					if (rule.length == 2 && rule[0].equals(word))
-						this.chart[POS.ordinal()][i][i] = new Tree(POS, i, i, word, null, null, Double.parseDouble(rule[1]));
+						this.chart[POS.ordinal()][i][i] = new Node(POS, i, i, word, null, null, Double.parseDouble(rule[1]));
 				}
 			}
 		}
@@ -169,9 +169,9 @@ class CYKParser {
 		for (int len = 2; len <= N; len++) {
 			for (int i = 0; i < (N + 1 - len); i++) {
 				int j = i + len - 1;
-				for (NonTerm M : NonTerm.values()) {
+				for (NonTerminal M : NonTerminal.values()) {
 					if (M.rules[0].length == 3) {
-						this.chart[M.ordinal()][i][j] = new Tree(M, i, j, null, null, null, 0.0);
+						this.chart[M.ordinal()][i][j] = new Node(M, i, j, null, null, null, 0.0);
 
 						for (int k = i; k <= (j - 1); k++) {
 							for (String[] rule : M.rules) {
@@ -197,13 +197,13 @@ class CYKParser {
 		return this.chart;
 	}
 
-	public Tree[][][] parseAlt() {
+	public Node[][][] parseAlt() {
 
 		this.chart = parse();
 
-		// Map NonTerm elements to chart indices
+		// Map NonTerminal elements to chart indices
 		ArrayList<String> chart_indices = new ArrayList<>();
-		for (NonTerm e : NonTerm.values()) {
+		for (NonTerminal e : NonTerminal.values()) {
 			chart_indices.add(e.symbol);
 		}
 
@@ -214,7 +214,7 @@ class CYKParser {
 
 		int i = 0;
 		int j = i + len - 1;
-		for (NonTerm M : NonTerm.values()) {
+		for (NonTerminal M : NonTerminal.values()) {
 			if (M.symbol.equals("S")) {
 				double oldProb = (this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob;
 
