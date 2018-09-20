@@ -195,54 +195,54 @@ class CYKParser {
 		return this.chart;
 	}
 
-		public Tree[][][] parseAlt() {
+	public Tree[][][] parseAlt() {
 
-			this.chart = parse();
+		this.chart = parse();
 
-			// Map NonTerm elements to chart indices
-			ArrayList<String> chart_indices = new ArrayList<>();
-			for (NonTerm e : NonTerm.values()) {
-				chart_indices.add(e.symbol);
-			}
+		// Map NonTerm elements to chart indices
+		ArrayList<String> chart_indices = new ArrayList<>();
+		for (NonTerm e : NonTerm.values()) {
+			chart_indices.add(e.symbol);
+		}
 
-			// Parse
-			int len = sentence.length;
+		// Parse
+		int len = sentence.length;
 
-			boolean altAvail = false;
+		boolean altAvail = false;
 
-			int i = 0;
-			int j = i + len - 1;
-			for (NonTerm M : NonTerm.values()) {
-				if (M.symbol.equals("S")) {
-					double oldProb = (this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob;
+		int i = 0;
+		int j = i + len - 1;
+		for (NonTerm M : NonTerm.values()) {
+			if (M.symbol.equals("S")) {
+				double oldProb = (this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob;
 
-					(this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob = 0.0;
+				(this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob = 0.0;
 
-					for (int k = i; k <= (j - 1); k++) {
-						for (String[] rule : M.rules) {
-							try {
-								double newProb = (this.chart[chart_indices.indexOf(rule[0])][i][k].prob) * (this.chart[chart_indices.indexOf(rule[1])][k+1][j].prob) * Double.parseDouble(rule[2]);
-								
-								if (newProb < oldProb && newProb > (this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob) {
-									(this.chart[chart_indices.indexOf("S")][i][j]).left = this.chart[chart_indices.indexOf(rule[0])][i][k];
-									(this.chart[chart_indices.indexOf("S")][i][j]).right = this.chart[chart_indices.indexOf(rule[1])][k + 1][j];
-									(this.chart[chart_indices.indexOf("S")][i][j]).prob = newProb;
-									altAvail = true;
-								}
-							}
-							catch (Exception e) {
-								continue;
+				for (int k = i; k <= (j - 1); k++) {
+					for (String[] rule : M.rules) {
+						try {
+							double newProb = (this.chart[chart_indices.indexOf(rule[0])][i][k].prob) * (this.chart[chart_indices.indexOf(rule[1])][k+1][j].prob) * Double.parseDouble(rule[2]);
+							
+							if (newProb < oldProb && newProb > (this.chart[chart_indices.indexOf(M.symbol)][i][j]).prob) {
+								(this.chart[chart_indices.indexOf("S")][i][j]).left = this.chart[chart_indices.indexOf(rule[0])][i][k];
+								(this.chart[chart_indices.indexOf("S")][i][j]).right = this.chart[chart_indices.indexOf(rule[1])][k + 1][j];
+								(this.chart[chart_indices.indexOf("S")][i][j]).prob = newProb;
+								altAvail = true;
 							}
 						}
+						catch (Exception e) {
+							continue;
+						}
 					}
-
-					break;
 				}
-			}
 
-			if (altAvail)
-				return this.chart;
-			else
-				return null;
+				break;
+			}
 		}
+
+		if (altAvail)
+			return this.chart;
+		else
+			return null;
 	}
+}
