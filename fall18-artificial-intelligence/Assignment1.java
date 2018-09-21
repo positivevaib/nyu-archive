@@ -142,6 +142,8 @@ class CYKParser {
 	String[] sentence;
 	Node[][][] chart;
 
+	String[] alt;
+
 	double oldProb;
 	
 	public CYKParser(String sentence) {
@@ -199,7 +201,7 @@ class CYKParser {
 		return this.chart;
 	}
 
-	public void nodeSearch(Node root, double[] probArray, Node alt, Node[] children) {
+	public void nodeSearch(Node root, double newProb) {
 		// Map NonTerminal elements to chart indices
 		ArrayList<String> chart_indices = new ArrayList<>();
 		for (NonTerminal e : NonTerminal.values()) {
@@ -214,19 +216,28 @@ class CYKParser {
 				for (int k = i; k <= (j - 1); k++) {
 					for (String[] rule : M.rules) {
 						double subProb;
-						double newProb;
+						double tempProb;
 						try {
 							subProb = this.chart[chart_indices.indexOf(rule[0])][i][k].prob * this.chart[chart_indices.indexOf(rule[1])][k + 1][j].prob * Double.parseDouble(rule[2]);
 
-							newProb = (probArray[0]/root.prob) * subProb;
+							tempProb = (this.chart[chart_indices.indexOf("S")][0][sentence.length - 1].prob/root.prob) * subProb;
 
-							if (newProb > probArray[1] && newProb < probArray[0]) {
-								probArray[1] = newProb;
+							if (tempProb > newProb && tempProb < this.chart[chart_indices.indexOf("S")][0][sentence.length - 1].prob) {
+								newProb = tempProb;
 	
-								alt = root;
-		
-								children[0] = this.chart[chart_indices.indexOf(rule[0])][i][k];
-								children[1] = this.chart[chart_indices.indexOf(rule[1])][k + 1][j];
+								alt[0] = root.phrase.symbol;
+								alt[1] = i + "";
+								alt[2] = j + "";
+
+								alt[3] = rule[0];
+								alt[4] = i + "";
+								alt[5] = k + "";
+
+								alt[6] = rule[1];
+								alt[7] = k + 1 + "";
+								alt[8] = j + "";
+
+								alt[9] = newProb + "";
 							}
 						}
 						catch (Exception e) {
@@ -240,8 +251,8 @@ class CYKParser {
 		}
 
 		if (root.word == null) {
-			nodeSearch(root.left, probArray, alt, children);
-			nodeSearch(root.right, probArray, alt, children);
+			nodeSearch(root.left, newProb);
+			nodeSearch(root.right, newProb);
 		}
 	}
 
@@ -263,19 +274,15 @@ class CYKParser {
 
 			Node root = this.chart[chart_indices.indexOf("S")][0][len - 1];
 
-			double[] probArray = {root.prob, 0.0};
+			alt = new String[10];
+			
+			nodeSearch(root, 0);
 
-			Node alt = null;
-			Node[] children = {null, null};
+			if (alt[0] != null) {
+				this.chart[chart_indices.indexOf(alt[0])][Integer.parseInt(alt[1])][Integer.parseInt(alt[2])].left = this.chart[chart_indices.indexOf(alt[3])][Integer.parseInt(alt[4])][Integer.parseInt(alt[5])];
+				this.chart[chart_indices.indexOf(alt[0])][Integer.parseInt(alt[1])][Integer.parseInt(alt[2])].right = this.chart[chart_indices.indexOf(alt[6])][Integer.parseInt(alt[7])][Integer.parseInt(alt[8])];
 
-			nodeSearch(root, probArray, alt, children);
-
-			System.out.println(alt.phrase.symbol);
-			if (alt != null) {
-				alt.left = children[0];
-				alt.right = children[1];
-
-				this.chart[chart_indices.indexOf("S")][0][len - 1].prob = probArray[1];
+				this.chart[chart_indices.indexOf("S")][0][len - 1].prob = Double.parseDouble(alt[9]);
 			}
 		}
 		
