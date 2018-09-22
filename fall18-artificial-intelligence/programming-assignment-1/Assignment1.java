@@ -322,9 +322,8 @@ class CYKParser {
 								newProb = tempProb;
 	
 								altNode = root;
-
+								
 								altChild0 = this.chart[chart_indices.indexOf(rule[0])][i][k];
-
 								altChild1 = this.chart[chart_indices.indexOf(rule[1])][k + 1][j];
 
 								altProb = newProb;
