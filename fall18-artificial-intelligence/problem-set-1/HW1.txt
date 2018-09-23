@@ -1,0 +1,170 @@
+Vaibhav A Gadodia
+Artificial Intelligence - HW 1
+
+
+Problem 1
+
+Tree 1
+
+S ---> NP ---> Noun ---> Dogs
+   |
+   |-> VP ---> VP ---> Verb ---> wag
+           |       |
+           |       |-> NP ---> Noun ---> tail
+           |
+           |-> Conj ---> and
+           |
+           |-> VP ---> Verb ---> bark
+
+Tree 2
+
+S ---> NP ---> Noun ---> Dogs
+   |       |
+   |       |-> Noun ---> wag
+   |
+   |-> VP ---> Verb ---> tail
+           |
+           |-> Conj ---> and
+           |
+           |-> Verb ---> bark
+
+Tree 3
+
+S ---> NP ---> Noun ---> Dogs
+   |
+   |-> VP ---> Verb ---> wag
+           |
+           |-> NP ---> Noun ---> tail
+                   |
+                   |-> Conj ---> and
+                   |
+                   |-> Noun ---> bark
+
+
+Problem 2
+
+A. Frequency Constraints. 
+   Here, 'it' refers to the bouquet of flowers as it is more common to remark about flowers being beautiful rather than delis being so.
+
+B. Selectional Restrictions.
+   Here, 'they' refers to the children as 'hunger' is a feature of animate entities.
+
+C. Selectional Restrictions.
+   Here, 'they' refers to the lunches as 'growing mold' is a feature of food, not humans.
+
+D. Selectional Restrictions.
+   Here, 'they' refers to the fish as 'danger of extinction' is a feature of non-human species.
+
+E. Selectional Restrictions.
+   Here, 'they' refers to the scientists as 'work' is a feature of humans.
+
+F. Selectional Restrictions.
+   Here, 'they' refers to the fish as 'being previously unknown' is a feature of non-human species.
+
+G. World Knowledge.
+   Here, 'they' refers to the fish as it is the most plausible interpretation of the sentence because it is highly unlikely that the scientists studying the fish would study each other's swimming techniques.
+
+H. Selectional Restrictions.
+   Here, 'he' refers to Fred as 'being the life of a party' is a feature of living human beings.
+
+I. World Knowledge.
+   Here, 'it' refers to George's dead body as this is the most plausible interpretation of the sentence given that Fred's hiding of George's body is the sentence's narrative anchor.
+
+J. Selectional Restrictions.
+   Here, 'they' refers to the tulip bulbs as 'resembling onions' is a feature of tulip bulbs, not hamburgers.
+
+
+Problem 3
+
+Sentence 1
+
+Lexicon
+
+"I" ---> Assert Person(Speaker). 
+         Denotation = Speaker
+
+"saw" ---> Content: See
+
+"man" ---> Content: Person and Male
+
+"telescope" ---> Content: Telescope 
+
+Compositional Rules
+
+Rule 1
+
+Given: NP ---> Pron ---> W
+Denotation(NP) = Denotation(W)
+
+Rule 2
+
+Given: NP ---> Det
+           |
+           |-> Noun
+
+Create a new symbol S. 
+Assert Noun.Content(S)
+Denotation(NP) = S
+
+Rule 3
+
+Given: NP1 ---> Det
+            |
+            |-> Noun
+            |
+            |-> PP ---> Prep
+                    |
+                    |-> NP2
+
+Create a new symbol P for Det/Noun pair.
+Assert Noun.Content(P)
+Assert Owns(P, Denotation(NP2))
+Denotation(NP1) = P
+
+Sentence 2
+
+Lexicon
+
+"I" ---> Assert Person(Speaker). 
+         Denotation = Speaker
+
+"saw" ---> Content: See
+
+"man" ---> Content: Person and Male
+
+"telescope" ---> Content: Telescope 
+
+Compositional Rules
+
+Rule 1
+
+Given: NP ---> Pron ---> W
+Denotation(NP) = Denotation(W)
+
+Rule 2
+
+Given: NP ---> Det
+           |
+           |-> Noun
+
+Create a new symbol S.
+Assert Noun.Content(S)
+Denotation(NP) = S
+
+Rule 3
+
+Given: S ---> NP1
+          |
+          |-> VP ---> Verb
+                  |
+                  |-> NP2
+                  |
+                  |-> PP ---> Prep
+                          |
+                          |-> NP3
+
+Create a new symbol E.
+Assert Event(E, Verb.Content)
+Assert Actor(E, Denotation(NP1))
+Assert Object(E, Denotation(NP2))
+Assert Instrument(E, Denotation(NP3))
