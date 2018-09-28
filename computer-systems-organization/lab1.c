@@ -152,6 +152,7 @@ int main(int argc, char * argv[])
  * */
 void f1(int start, int end, int incr)
 {
+	// To print the correct range, we begin by printing start and keep incrementing it by the amount incr until it becomes greater than or equal to the end value. When that happens, we exit the loop and print the end value.
 	while (start < end) {
 		printf("%d ", start);
 		start += incr;
@@ -173,15 +174,18 @@ void f1(int start, int end, int incr)
  */
 void f2(char * filename)
 {
+	// We begin by creating a pointer to the file that we want to read the data from.
 	FILE * original;
 	original = fopen(filename, "r");
 
+	// Next, we create a new file to write the reversed text to.
 	FILE * new;
 	char newname[100];
 	strcpy(newname, filename);
 	strcat(newname, ".reverse");
 	new = fopen(newname, "w");
 	
+	// We read the original file one char at a time and change the case if it is an alphabet, otherwise we simply keep it as it is. After the conversion (or not in the non-alphabetic cases), we write that char to the reverse file.
 	char ch;
 	while (fscanf(original, "%c", &ch) == 1) {
 		if (islower(ch)) {
@@ -195,6 +199,7 @@ void f2(char * filename)
 		}
 	}
 
+	// We finally close the files.
 	fclose(original);
 	fclose(new);
 }
@@ -216,6 +221,7 @@ void f2(char * filename)
  */
 void f3(char *filename, int gen)
 {
+	// We begin by creating a pointer to the file with our matrix data and read it one char at a time, adding the valid chars ('0' - '9') to an integer array.
 	FILE * data = fopen(filename, "r");
 	
 	int mat[9];
@@ -229,6 +235,7 @@ void f3(char *filename, int gen)
 		}
 	}
 
+	// We declare a new int array and for every generation, we iterate through the previous generation's matrix (stored in mat[]) and find that number's row and column in the virtual matrix. Then, we iterate through the matrix again, this time skipping any entry that is not 1 or that is the same as our focus number (who's neighbors we're checking). For every entry we then find if that entry is a neighbor or not, which can be done by first finding it's row and column and then finding if the distance is at most 1 between the focus and neighbor's row and column. If it turns out to be a neighbor, we note that down and later on (after the inner iteration is done) we change the focus value in the new_mat[] to 1 if it had 2 or 3 neighbors with value 1, otherwise we 0 it out. Finally, to prepare for the next generation, we copy the new_mat[] values to mat[]
 	int new_mat[9];
 	while (gen > 0) {
 		for (i = 0; i < 9; i++) {
@@ -260,6 +267,7 @@ void f3(char *filename, int gen)
 		gen--;
 	}
 
+	// To print the mat[] entries in the right format (as a matrix), we find if an entry's index is divisible by 3 as that means that the entry is the first in a new row of the matrix. This allows us to add a new line to the print statement. Otherwise, the entry is printed without a new line. Also, 0th entry is printed out before the loop and any evaluations because that way there is no needless new line in the beginning.
 	printf("%d ", mat[0]);
 	for (i = 1; i < 9; i++) {
 		if ((i % 3) == 0)
@@ -279,6 +287,7 @@ void f3(char *filename, int gen)
  */
 void f4(int * num, int n)
 {
+	// To print the reverse order, we first sort the array in descending order and then print the array iteratively.
 	for (int i = 0; i < n; i++) {
 		int max_index = i;
 		for (int j = (i + 1); j < n; j++) {
@@ -311,6 +320,7 @@ void f4(int * num, int n)
  */
 void f5(int a, int b)
 {
+	// To print all non primes in the range, we iterate through the range and assign nonprime to 0 (false). Then, we iterate through all numbers between 2 and one less than the focus number itself and find if any of those divides it. If the number is divisible by even one of these, then we change nonprime to 1 and break out of the inner loop, printing the number if it's nonprime, 0, 1, or 2. 0, 1 and 2 are printed as special cases because of the way that primes are defined.
 	for (int num = a; num <= b; num++) {
 		int nonprime = 0;
 		for (int divisor = 2; divisor < num; divisor++) {
