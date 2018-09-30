@@ -76,3 +76,14 @@ iv) Here, the algorithm will be similar to the search algorithm except that it w
 
 Problem 6
 
+To reverse a list in constant time, the tree's internal nodes will have to also a 'reverse bit' in addition to their subtree size. If this reverse bit is 1, then the subtree rooted at that node is to be treated as the logical reverse of the list that it would otherwise represent. This runs in constant time because to reverse a list, all that needs to be done is to change the reverse bit of the root node to 1.
+
+The other operations discussed in Problem 5 can still be implemented in their usual time bounds with this approach, as shown below.
+
+i) Creating a new list with one item would still run in constant time as it only involves the instantiation of a leaf node.
+
+ii) Concatenation of two lists would still run in O(log(n)) time with a few changes to the algorithm that was described in the previous problem. In the case where the heights of the two trees being merged is the same, the algorithm would work as usual. However, in the case where the heights are different, the algorithm would first have to traverse its way down to the node where the tree with the smaller height will be merged. And on the way to that node, the algorithm would have to shovel the reverse bits down, whenever it visits a node with its reverse bit set to 1. On such instances, when the reverse bit is 1, the algorithm will have to reverse the order of the node's children such that the rightmost child becomes the left most and vice versa. Also, after this change of order, the reverse bit of the node would be set to 0 while the reverse bits of the children would themselves be reversed. So, a child with reverse bit 1 would now have its reverse bit as 0 and vice versa. Once the routine has shoveled the reverse bits on the path to the node where the new tree is to be inserted, the merge operation as described previously would take over. This new procedure would run in O(log(n)) time because much like the ordinary merge operation, the search (and shovel) operation also has a runtime of O(log(n)).
+
+iii) Splitting the list into two lists given a position k would run in its usual O(log(n)) time with a few modifications to the algorithm as described previously. The only difference from the split and merge operation of the previous problem here would be that while traversing down the path and before deleting the node, the reverse bit would be shoveled down as described in the concatenation part above. The rest of the procedure involving the merger of all free standing trees would proceed as usual. 
+
+iv) Reporting the k-th item in the tree would still run in O(log(n)) time because as the search algorithm traverses down the tree, it would shovel the reverse bits and rearrange the child nodes as described in the previous parts. This way the algorithm wouldn't pick out the wrong item as the k-th entry and the runtime would remain the same.
