@@ -55,35 +55,52 @@ The cost to build the heap H is O(log(k)) as it will have k elements (the minimu
 
 This is accomplished by designing the algorithm so that each entry in heap H doesn't just have its own value but also the reference to the list that it originally belonged to. This allows the algorithm to not have to test the minimum elements of all k lists against each other to find the smallest among them.
 
+The memory used in this algorithm is O(k) as heap H that is maintained to sort the lists only ever has k elements at a time.
+
 
 Problem 5
 
 Data Structure:
 
-The data structure to use for this problem is a 2-3 tree where the values are stored at the leaf nodes in the order that they are inserted in the tree. So, for instance, if values 1, 7, 5 ..., 4 are inserted in that order, then the left-most leaf will have value 1, the next leaf, value 7 and so on, with the right most leaf having value 4. Here, the values can be repeated as the values themselves don't matter, rather it is the insertion order that matters. Furthermore, the internal nodes will have the total number of descendants in the subtree with themselves as the root. So, for instance, in an internal node that is the root of a subtree with 5 leaf nodes, the internal node will have value 5.
+- The data structure to use here is a 2-3 tree where the values are stored at the leaf nodes in the order that they are inserted in the tree. For instance, if values 1, 7, 5 ..., 4 are inserted in that order, then the left-most leaf will have value 1, the next leaf, value 7 and so on, with the right most leaf having value 4. Here, the values can be repeated as the values themselves don't matter, rather it is the insertion order that matters. 
+
+- The internal nodes in this tree will have the total number of leaf nodes in the subtree rooted at them. For instance, in an internal node that is the root of a subtree with 5 leaf nodes, the internal node will have value 5.
 
 Algorithms:
 
-i) To create a new list with one item is as simple as instantiating a new 2-3 tree and inserting that value in it, which takes constant time as it only involves the instantiation of a leaf node.
+i) To create a new list with one item is as simple as instantiating a new 2-3 tree and inserting that value in it, which takes constant time as it only involves the creation of a leaf node.
 
-ii) To concatenate two lists in time O(log(n)), the algorithm to be used is the same as the join operation for ordinary 2-3 trees. This is so because much like the join operation, which, relied on the assumption of the two trees (ones being merged) being in the correct final order, the list concatenation doesn't need to re-order any leaf nodes in the final tree.
+ii) To concatenate two lists in time O(log(n)), the algorithm to be used is the same as the join operation for ordinary 2-3 trees. This is so because much like the join operation that relied on the assumption of the two trees (ones being merged) being in the correct final order, the list concatenation doesn't need to re-order any leaf nodes in the final tree.
 
-iii) To split the list into two lists with one containing the first k items and the other, the rest, the algorithm to be used is very similar to the split operation used for ordinary 2-3 trees. Much like that split operation, this algorithm will also involve going down to the k-th leaf node and deleting the path travelled, and finally joining the free standing trees from inside out. The only difference here will be the search procedure to find the k-th node and that will be achieved through the guide values in the internal nodes, which in this case don't have the max value of the subtree, but rather the total descendants in the subtree. As a consequence, the search algorithm will keep track of a global count variable (which will remember the number of leaf nodes in the left subtree that was not visited) and will only visit that child node whose descendent leaf nodes will be in the range that houses the k-th leaf. So, for instance, while traversing down the path, if the search algorithm is at an internal node, (needing to find the 7th leaf node), and the count variable is 4, that would mean that the search algorithm will have to travel down to the leftmost child node where the count + child.guide > k
-This algorithm will have the same running time as the ordinary split operation as the only difference here is in the search operation but even there, the total operational calls are the same. Therefore, the algorithm will run in O(log(n)) time.
+iii) To split the list into two with one containing the first k items and the other, the rest, the algorithm to be used is very similar to the split operation for ordinary 2-3 trees. 
 
-iv) Here, the algorithm will be similar to the search algorithm except that it would not return a boolean but rather the leaf value. Also, here, the algorithm will not compare the child node values as in the ordinary case, but would instead use a global count variable (mentioned in part iii above) and would compare the sum of count and child node guide to figure out its path. Therefore, the running time will be O(log(n)) much like the ordinary search operation.
+- Much like the ordinary split operation, this algorithm would also involve traversing down to the k-th leaf node and deleting the path travelled, thereafter, merging the free standing trees from inside out. 
+
+- The difference here is in the search procedure to find the k-th node. The node would be found by levering the information about the number of leaf nodes in the internal nodes. The search algorithm would keep track of a global count variable (which would remember the number of leaf nodes in the left subtree not visited) and would only visit that child node whose descendent leaf nodes will be in the range that contains the k-th leaf. For instance, while traversing down the path, if the search algorithm is at an internal node - and it needs to find the 7th leaf node - and the count variable is 4, that would indicate that the search algorithm would have to travel down to the leftmost child node where (count + child.totLeaves) > k
+
+- This algorithm would have the same running time as the ordinary split operation because the only difference here is in the search operation but even there, the total operational calls are the same. Therefore, the algorithm would run in O(log(n)) time.
+
+iv) Here, the algorithm would be similar to the search algorithm except that it would not return a boolean but rather the value of the k-th leaf. Also, the algorithm would not compare the child node values as it would have in the ordinary case. Instead, it would use a global count variable - mentioned above in part iii - and would compare the sum of count and child node's descendant leafs to figure out its path. Therefore, the running time would be O(log(n)) much like the ordinary search operation.
 
 
 Problem 6
 
-To reverse a list in constant time, the tree's internal nodes will have to also a 'reverse bit' in addition to their subtree size. If this reverse bit is 1, then the subtree rooted at that node is to be treated as the logical reverse of the list that it would otherwise represent. This runs in constant time because to reverse a list, all that needs to be done is to change the reverse bit of the root node to 1.
+To reverse a list in constant time, the tree's internal nodes would have to contain a reverse bit in addition to the number of leaf nodes in their subtree. If this reverse bit were to be 1, then the subtree rooted at that node would be treated as the logical reverse of the list that it would otherwise represent. This would run in constant time because to reverse a list, all that would need to be done would be to change the reverse bit of the root to 1.
 
 The other operations discussed in Problem 5 can still be implemented in their usual time bounds with this approach, as shown below.
 
-i) Creating a new list with one item would still run in constant time as it only involves the instantiation of a leaf node.
+i) Creating a new list with one item would still run in constant time as it would only involve the instantiation of a leaf node.
 
-ii) Concatenation of two lists would still run in O(log(n)) time with a few changes to the algorithm that was described in the previous problem. In the case where the heights of the two trees being merged is the same, the algorithm would work as usual. However, in the case where the heights are different, the algorithm would first have to traverse its way down to the node where the tree with the smaller height will be merged. And on the way to that node, the algorithm would have to shovel the reverse bits down, whenever it visits a node with its reverse bit set to 1. On such instances, when the reverse bit is 1, the algorithm will have to reverse the order of the node's children such that the rightmost child becomes the left most and vice versa. Also, after this change of order, the reverse bit of the node would be set to 0 while the reverse bits of the children would themselves be reversed. So, a child with reverse bit 1 would now have its reverse bit as 0 and vice versa. Once the routine has shoveled the reverse bits on the path to the node where the new tree is to be inserted, the merge operation as described previously would take over. This new procedure would run in O(log(n)) time because much like the ordinary merge operation, the search (and shovel) operation also has a runtime of O(log(n)).
+ii) Concatenation of two lists would still run in O(log(n)) time with a few changes to the algorithm that was described in the previous problem. 
 
-iii) Splitting the list into two lists given a position k would run in its usual O(log(n)) time with a few modifications to the algorithm as described previously. The only difference from the split and merge operation of the previous problem here would be that while traversing down the path and before deleting the node, the reverse bit would be shoveled down as described in the concatenation part above. The rest of the procedure involving the merger of all free standing trees would proceed as usual. 
+- In the case where heights of the two trees being merged are equal, the algorithm would work as usual. 
 
-iv) Reporting the k-th item in the tree would still run in O(log(n)) time because as the search algorithm traverses down the tree, it would shovel the reverse bits and rearrange the child nodes as described in the previous parts. This way the algorithm wouldn't pick out the wrong item as the k-th entry and the runtime would remain the same.
+- However, in cases where the heights are different, the algorithm would first have to traverse its way down to the node where the tree with the smaller height would be merged as a child. And on the path to that node, the algorithm would have to shovel the reverse bits down, whenever it visits a node with its reverse bit set to 1. On such instances, when the reverse bit turns out to be 1, the algorithm would have to reverse the order of that node's children such that the rightmost child becomes the left most and vice versa. Also, after this change of order, the reverse bit of the node would have to be set to 0 while the reverse bits of the children would themselves be reversed. So, a child with reverse bit 1 would now have its reverse bit set to 0 and vice versa. 
+
+- Once this sub-routine has shoveled the reverse bits on its path to the node where the new tree is to be inserted, the ordinary merge operation would take over. This new procedure would run in O(log(n)) time because much like the ordinary merge operation, the search (and shovel) operation also has a runtime of O(log(n)).
+
+iii) Splitting the list into two given a position k would run in its usual O(log(n)) time with a few modifications to the algorithm described previously. 
+
+- The only difference from the split and merge operations of the previous problem would be that while traversing down the path, before deleting the nodes along that path, the reverse bit of those nodes would be shoveled down as described in the concatenation part above. The rest of the procedure involving the merger of free standing trees would proceed as usual.
+
+iv) Reporting the k-th item in the tree would run in O(log(n)) time because as the search algorithm traverses its way down the tree, it would shovel the reverse bits and rearrange the child nodes as described in the previous parts. This way the algorithm wouldn't pick out the wrong item as the k-th entry and the runtime would remain the same.
