@@ -7,26 +7,26 @@ public class Solution {
 
        Heap heap = new Heap();
 
-       int tot_entries = input.nextInt();
-       for (int i = 0; i < tot_entries; i++) {
+       long tot_entries = input.nextLong();
+       for (long i = 0; i < tot_entries; i++) {
            String name = input.next();
-           int value = input.nextInt();
+           long value = input.nextLong();
            
            heap.insert(name, value);
        }
 
-       int tot_queries = input.nextInt();
-       for (int i = 0; i < tot_queries; i++) {
-           int type = input.nextInt();
+       long tot_queries = input.nextLong();
+       for (long i = 0; i < tot_queries; i++) {
+           long type = input.nextLong();
 
            if (type == 1) {
                String name = input.next();
-               int valueToAdd = input.nextInt();
+               long valueToAdd = input.nextLong();
 
                heap.improveValue(name, valueToAdd);
            }
            else {
-               int evaluationValue = input.nextInt();
+               long evaluationValue = input.nextLong();
 
                System.out.println(heap.evaluate(evaluationValue));
            }
@@ -35,7 +35,7 @@ public class Solution {
 }
 
 class Heap {
-    HashMap<String, Integer> map;
+    HashMap<String, Long> map;
     ArrayList<String> tree;
 
     public Heap() {
@@ -47,7 +47,7 @@ class Heap {
         int parent_index = index/2;
 
         if (parent_index != 0)
-            while ((parent_index != 0) && (map.get(key) < map.get(tree.get(parent_index - 1)))) {
+            while ((parent_index != 0) && (map.get(tree.get(index - 1)) < map.get(tree.get(parent_index - 1)))) {
                 String temp = tree.get(index - 1);
                 tree.set(index - 1, tree.get(parent_index - 1));
                 tree.set(parent_index - 1, temp);
@@ -60,21 +60,20 @@ class Heap {
     public void sinkDown(int index) {
         int leftChildIndex = 2*index;
         int rightChildIndex = 2*index + 1;
-
-        int leftDiff;
+        long leftDiff;
         try {
             leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
         }
         catch (Exception e) {
-            leftDiff = Integer.MIN_VALUE;
+            leftDiff = Long.MIN_VALUE;
         }
         
-        int rightDiff;
+        long rightDiff;
         try {
             rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
         }
         catch (Exception e) {
-            rightDiff = Integer.MIN_VALUE;
+            rightDiff = Long.MIN_VALUE;
         }
 
         while (leftDiff > 0 || rightDiff > 0) {
@@ -91,14 +90,14 @@ class Heap {
                     leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
                 }
                 catch (Exception e) {
-                    leftDiff = Integer.MIN_VALUE;
+                    leftDiff = Long.MIN_VALUE;
                 }
 
                 try {
                     rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
                 }
                 catch (Exception e) {
-                    rightDiff = Integer.MIN_VALUE;
+                    rightDiff = Long.MIN_VALUE;
                 }
             }
             else {
@@ -114,35 +113,25 @@ class Heap {
                     leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
                 }
                 catch (Exception e) {
-                    leftDiff = Integer.MIN_VALUE;
+                    leftDiff = Long.MIN_VALUE;
                 }
 
                 try {
                     rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
                 }
                catch (Exception e) {
-                   rightDiff = Integer.MIN_VALUE;
+                   rightDiff = Long.MIN_VALUE;
                }
             }
         }
     }
     
-    public void insert(String key, int value) {
+    public void insert(String key, long value) {
         map.put(key, value);
         tree.add(key);
 
         int index = tree.size();
-        int parent_index = index/2;
-
-        if (parent_index != 0)
-            while ((parent_index != 0) && (map.get(key) < map.get(tree.get(parent_index - 1)))) {
-                String temp = tree.get(index - 1);
-                tree.set(index - 1, tree.get(parent_index - 1));
-                tree.set(parent_index - 1, temp);
-
-                index = parent_index;
-                parent_index = index/2;
-            }
+        this.floatUp(index);
     }
 
     public void deleteMin() {
@@ -159,90 +148,23 @@ class Heap {
         tree.remove(tree.size() - 1);
 
         int index = 1;
-        int leftChildIndex = 2*index;
-        int rightChildIndex = 2*index + 1;
-
-        int leftDiff;
-        try {
-            leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
-        }
-        catch (Exception e) {
-            leftDiff = Integer.MIN_VALUE;
-        }
-        
-        int rightDiff;
-        try {
-            rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
-        }
-        catch (Exception e) {
-            rightDiff = Integer.MIN_VALUE;
-        }
-        
-        while (leftDiff > 0 || rightDiff > 0) {
-            if (leftDiff > rightDiff) {
-                String temp = tree.get(index - 1);
-                tree.set(index - 1, tree.get(leftChildIndex - 1));
-                tree.set(leftChildIndex - 1, temp);
-
-                index = leftChildIndex;
-                leftChildIndex = 2*index;
-                rightChildIndex = 2*index + 1;
-
-                try {
-                    leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
-                }
-                catch (Exception e) {
-                    leftDiff = Integer.MIN_VALUE;
-                }
-
-                try {
-                    rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
-                }
-                catch (Exception e) {
-                    rightDiff = Integer.MIN_VALUE;
-                }
-            }
-            else {
-                String temp = tree.get(index - 1);
-                tree.set(index - 1, tree.get(rightChildIndex  -1));
-                tree.set(rightChildIndex - 1, temp);
-
-                index = rightChildIndex;
-                leftChildIndex = 2*index;
-                rightChildIndex = 2*index + 1;
-
-                try {
-                    leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
-                }
-                catch (Exception e) {
-                    leftDiff = Integer.MIN_VALUE;
-                }
-
-                try {
-                    rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
-                }
-               catch (Exception e) {
-                   rightDiff = Integer.MIN_VALUE;
-               }
-            }
-        }
+        this.sinkDown(index);
     }
 
-    public void deleteLessThan(int value) {
-        for (int i = 0; i < tree.size(); i++)
-            System.out.println("here: " + tree.get(i) + " " + map.get(tree.get(i)));
+    public void deleteLessThan(long value) {
         while (map.get(tree.get(0)) < value) {
             this.deleteMin();
         }
     }
 
-    public void improveValue(String key, int value) {
+    public void improveValue(String key, long value) {
         map.put(key, map.get(key) + value);
 
-        
+        int index = tree.indexOf(key) + 1;
+        sinkDown(index);
     }
 
-    public int evaluate(int value) {
+    public long evaluate(long value) {
         this.deleteLessThan(value);
 
         return tree.size();
