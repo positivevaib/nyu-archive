@@ -61,9 +61,15 @@ class Heap {
     }
 
     public void deleteMin() {
+        if (tree.size() == 0)
+            return;
+
         map.remove(tree.get(0));
         tree.remove(0);
 
+        if (tree.size() <= 1)
+            return;
+        
         tree.add(0, tree.get(tree.size() - 1));
         tree.remove(tree.size() - 1);
 
@@ -71,9 +77,20 @@ class Heap {
         int leftChildIndex = 2*index;
         int rightChildIndex = 2*index + 1;
 
-        int leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
-        int rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
-
+        try {
+            int leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
+        }
+        catch (Exception e) {
+            int leftDiff = Integer.MIN_VALUE;
+        }
+        
+        try {
+            int rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
+        }
+        catch (Exception e) {
+            int rightDiff = Integer.MIN_VALUE;
+        }
+        
         while (leftDiff > 0 || rightDiff > 0) {
             if (leftDiff > rightDiff) {
                 String temp = tree.get(index - 1);
@@ -84,8 +101,19 @@ class Heap {
                 leftChildIndex = 2*index;
                 rightChildIndex = 2*index + 1;
 
-                leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
-                rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
+                try {
+                    leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
+                }
+                catch (Exception e) {
+                    leftDiff = Integer.MIN_VALUE;
+                }
+
+                try {
+                    rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
+                }
+                catch (Exception e) {
+                    rightDiff = Integer.MIN_VALUE;
+                }
             }
             else {
                 String temp = tree.get(index - 1);
@@ -96,8 +124,19 @@ class Heap {
                 leftChildIndex = 2*index;
                 rightChildIndex = 2*index + 1;
 
-                leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
-                rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
+                try {
+                    leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
+                }
+                catch (Exception e) {
+                    leftDiff = Integer.MIN_VALUE;
+                }
+
+                try {
+                    rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
+                }
+               catch (Exception e) {
+                   rightDiff = Integer.MIN_VALUE;
+               }
             }
         }
     }
