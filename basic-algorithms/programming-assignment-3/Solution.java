@@ -46,15 +46,14 @@ class Heap {
     public void floatUp(int index) {
         int parent_index = index/2;
 
-        if (parent_index != 0)
-            while ((parent_index != 0) && (map.get(tree.get(index - 1)) < map.get(tree.get(parent_index - 1)))) {
-                String temp = tree.get(index - 1);
-                tree.set(index - 1, tree.get(parent_index - 1));
-                tree.set(parent_index - 1, temp);
+        while ((parent_index != 0) && (map.get(tree.get(index - 1)) < map.get(tree.get(parent_index - 1)))) {
+            String temp = tree.get(index - 1);
+            tree.set(index - 1, tree.get(parent_index - 1));
+            tree.set(parent_index - 1, temp);
 
-                index = parent_index;
-                parent_index = index/2;
-            }
+            index = parent_index;
+            parent_index = index/2;
+        }
     }
 
     public void sinkDown(int index) {
