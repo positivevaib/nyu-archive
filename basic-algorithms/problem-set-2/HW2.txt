@@ -4,7 +4,7 @@ Basic Algorithms - HW 2
 
 Problem 3
 
-CALLING-FUNCTION(heap H, valueType x, int k)										
+Algorithm CALLING-FUNCTION(heap H, valueType x, int k)										
 1. global count <- 0											
 2. boolean1, boolean2 <- false									
 3. if H.root.value < x											
@@ -15,7 +15,7 @@ CALLING-FUNCTION(heap H, valueType x, int k)
 8.		boolean2 <- RECURSIVE-FUNCTION(H.root.child2, ++count, x, k)				
 9. return boolean1 or boolean2 or count >= k								
 
-RECURSIVE-FUNCTION(node N, int count, valueType x, int k)						
+Algorithm RECURSIVE-FUNCTION(node N, int count, valueType x, int k)						
 1. if count >= k											
 2. 	return true											
 3. boolean1, boolean2 <- false										
@@ -32,7 +32,7 @@ RECURSIVE-FUNCTION will either never be called or be called (k-1) times in total
 
 Problem 4
 
-K-WAY-MERGE(int n, list L1, list L2, ... , list LK)					
+Algorithm K-WAY-MERGE(int n, list L1, list L2, ... , list LK)					
 1. H <- new heap											
 2. sorted <- new list											
 3. for all lists										
@@ -42,12 +42,13 @@ K-WAY-MERGE(int n, list L1, list L2, ... , list LK)
 7. 	if i != n											
 8. 		sorted.insert(H.min)							
 9. 		originalListRef <- H.min.orignialList						
-10. 		H.deleteMin()											
-11. 		H.insert(originalListRef.min)								
-12. 		originalListRef.deleteMin()								
-13. 	else												
-14. 		sorted.insert(H.min)									
-15. return sorted											
+10. 		H.deleteMin()	
+11.		if originalListRef.size != 0										
+12. 			H.insert(originalListRef.min)								
+13. 			originalListRef.deleteMin()								
+14. 	else												
+15. 		sorted.insert(H.min)									
+16. return sorted											
 
 Total cost of K-WAY-MERGE = O(nlog(k))
 
@@ -65,6 +66,10 @@ Data Structure:
 - The data structure to use here is a 2-3 tree where the values are stored at the leaf nodes in the order that they are inserted in the tree. For instance, if values 1, 7, 5 ..., 4 are inserted in that order, then the left-most leaf will have value 1, the next leaf, value 7 and so on, with the right most leaf having value 4. Here, the values can be repeated as the values themselves don't matter, rather it is the insertion order that matters. 
 
 - The internal nodes in this tree will have the total number of leaf nodes in the subtree rooted at them. For instance, in an internal node that is the root of a subtree with 5 leaf nodes, the internal node will have value 5.
+
+class InternalNode {
+	int totalLeafNodes
+}
 
 Algorithms:
 
@@ -86,6 +91,11 @@ iv) Here, the algorithm would be similar to the search algorithm except that it 
 Problem 6
 
 To reverse a list in constant time, the tree's internal nodes would have to contain a reverse bit in addition to the number of leaf nodes in their subtree. If this reverse bit were to be 1, then the subtree rooted at that node would be treated as the logical reverse of the list that it would otherwise represent. This would run in constant time because to reverse a list, all that would need to be done would be to change the reverse bit of the root to 1.
+
+class InternalNode {
+	int totalLeafNodes
+	int reverseBit
+}
 
 The other operations discussed in Problem 5 can still be implemented in their usual time bounds with this approach, as shown below.
 

@@ -3,34 +3,41 @@ import java.util.*;
 
 public class Solution {
     public static void main(String[] args) {
-       Scanner input = new Scanner(System.in);
 
-       Heap heap = new Heap();
+        long start = System.currentTimeMillis();
 
-       long tot_entries = input.nextLong();
-       for (long i = 0; i < tot_entries; i++) {
-           String name = input.next();
-           long value = input.nextLong();
-           
-           heap.insert(name, value);
-       }
+        Scanner input = new Scanner(System.in);
 
-       long tot_queries = input.nextLong();
-       for (long i = 0; i < tot_queries; i++) {
-           long type = input.nextLong();
+        Heap heap = new Heap();
 
-           if (type == 1) {
-               String name = input.next();
-               long valueToAdd = input.nextLong();
+        long tot_entries = input.nextLong();
+        for (long i = 0; i < tot_entries; i++) {
+            String name = input.next();
+            long value = input.nextLong();
+            
+            heap.insert(name, value);
+        }
 
-               heap.improveValue(name, valueToAdd);
-           }
-           else {
-               long evaluationValue = input.nextLong();
+        long tot_queries = input.nextLong();
+        for (long i = 0; i < tot_queries; i++) {
+            long type = input.nextLong();
 
-               System.out.println(heap.evaluate(evaluationValue));
-           }
-       }
+            if (type == 1) {
+                String name = input.next();
+                long valueToAdd = input.nextLong();
+
+                heap.improveValue(name, valueToAdd);
+            }
+            else {
+                long evaluationValue = input.nextLong();
+
+                System.out.println(heap.evaluate(evaluationValue));
+            }
+        }
+
+        long end = System.currentTimeMillis();
+
+        System.out.println("\n\ntime: " + (end - start));
     }
 }
 
@@ -45,7 +52,7 @@ class Heap {
 
     public void floatUp(int index) {
         int parent_index = index/2;
-
+ 
         while ((parent_index != 0) && (map.get(tree.get(index - 1)) < map.get(tree.get(parent_index - 1)))) {
             String temp = tree.get(index - 1);
             tree.set(index - 1, tree.get(parent_index - 1));
