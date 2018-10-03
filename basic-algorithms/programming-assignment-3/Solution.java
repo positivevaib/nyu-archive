@@ -3,23 +3,20 @@ import java.util.*;
 
 public class Solution {
     public static void main(String[] args) {
-
-        long start = System.currentTimeMillis();
-
         Scanner input = new Scanner(System.in);
 
-        Heap heap = new Heap();
+        int totalEntries = input.nextInt();
+        Heap heap = new Heap(totalEntries);
 
-        long tot_entries = input.nextLong();
-        for (long i = 0; i < tot_entries; i++) {
+        for (long i = 0; i < totalEntries; i++) {
             String name = input.next();
             long value = input.nextLong();
             
             heap.insert(name, value);
         }
 
-        long tot_queries = input.nextLong();
-        for (long i = 0; i < tot_queries; i++) {
+        int totalQueries = input.nextInt();
+        for (long i = 0; i < totalQueries; i++) {
             long type = input.nextLong();
 
             if (type == 1) {
@@ -34,145 +31,99 @@ public class Solution {
                 System.out.println(heap.evaluate(evaluationValue));
             }
         }
-
-        long end = System.currentTimeMillis();
-
-        System.out.println("\n\ntime: " + (end - start));
     }
 }
 
 class Heap {
-    HashMap<String, Long> map;
-    ArrayList<String> tree;
+    String[] tree;
+    int size;
 
-    public Heap() {
-        map = new HashMap<>();
-        tree = new ArrayList<>();
+    HashMap<String, Long> valueMap;
+    HashMap<String, Integer> indexMap;
+
+    public Heap(int size) {
+        this.tree = new String[size];
+        this.size = 0;
+
+        this.valueMap = new HashMap<>();
+        this.indexMap = new HashMap<>();
     }
 
-    public void floatUp(int index) {
-        int parent_index = index/2;
- 
-        while ((parent_index != 0) && (map.get(tree.get(index - 1)) < map.get(tree.get(parent_index - 1)))) {
-            String temp = tree.get(index - 1);
-            tree.set(index - 1, tree.get(parent_index - 1));
-            tree.set(parent_index - 1, temp);
+    public void swap(int index1, int index2) {
+        String temp = this.tree[index1];
 
-            index = parent_index;
-            parent_index = index/2;
+        this.tree[index1] = this.tree[index2];
+        this.indexMap.put(this.tree[index1], index1);
+
+        this.tree[index2] = temp;
+        this.indexMap.put(this.tree[index2], index2);
+    }
+
+    public void floatUp(int position) {
+        while (position > 1) {
+            int parentPosition = position/2;
+
+            if (this.valueMap.get(this.tree[parentPosition - 1]) < this.valueMap.get(this.tree[position - 1]))
+                break;
+
+            this.swap(position - 1, parentPosition - 1);
+
+            position = parentPosition;
         }
     }
 
-    public void sinkDown(int index) {
-        int leftChildIndex = 2*index;
-        int rightChildIndex = 2*index + 1;
-        long leftDiff;
-        try {
-            leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
-        }
-        catch (Exception e) {
-            leftDiff = Long.MIN_VALUE;
-        }
-        
-        long rightDiff;
-        try {
-            rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
-        }
-        catch (Exception e) {
-            rightDiff = Long.MIN_VALUE;
-        }
+    public void sinkDown(int position) {
+        int leftChildPosition = 2*position;
 
-        while (leftDiff > 0 || rightDiff > 0) {
-            if (leftDiff > rightDiff) {
-                String temp = tree.get(index - 1);
-                tree.set(index - 1, tree.get(leftChildIndex - 1));
-                tree.set(leftChildIndex - 1, temp);
+        while (leftChildPosition <= this.size) {
+            int swapPosition = leftChildPosition;
 
-                index = leftChildIndex;
-                leftChildIndex = 2*index;
-                rightChildIndex = 2*index + 1;
+            int rightChildPosition = 2*position + 1;
+            if (rightChildPosition <= this.size && this.valueMap.get(this.tree[rightChildPosition - 1]) < this.valueMap.get(this.tree[leftChildPosition - 1]))
+                swapPosition = rightChildPosition;
 
-                try {
-                    leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
-                }
-                catch (Exception e) {
-                    leftDiff = Long.MIN_VALUE;
-                }
+            if (this.valueMap.get(this.tree[position - 1]) > this.valueMap.get(this.tree[swapPosition - 1]))
+                this.swap(position - 1, swapPosition - 1);
 
-                try {
-                    rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
-                }
-                catch (Exception e) {
-                    rightDiff = Long.MIN_VALUE;
-                }
-            }
-            else {
-                String temp = tree.get(index - 1);
-                tree.set(index - 1, tree.get(rightChildIndex  -1));
-                tree.set(rightChildIndex - 1, temp);
-
-                index = rightChildIndex;
-                leftChildIndex = 2*index;
-                rightChildIndex = 2*index + 1;
-
-                try {
-                    leftDiff = map.get(tree.get(index - 1)) - map.get(tree.get(leftChildIndex - 1));
-                }
-                catch (Exception e) {
-                    leftDiff = Long.MIN_VALUE;
-                }
-
-                try {
-                    rightDiff = map.get(tree.get(index - 1)) - map.get(tree.get(rightChildIndex - 1));
-                }
-               catch (Exception e) {
-                   rightDiff = Long.MIN_VALUE;
-               }
-            }
+            position = swapPosition;
+            leftChildPosition = 2*position;
         }
     }
     
     public void insert(String key, long value) {
-        map.put(key, value);
-        tree.add(key);
+        this.valueMap.put(key, value);
 
-        int index = tree.size();
-        this.floatUp(index);
+        this.tree[this.size] = key;
+        this.indexMap.put(key, this.size);
+
+        this.size++;
+
+        this.floatUp(this.size - 1);
     }
 
     public void deleteMin() {
-        if (tree.size() == 0)
-            return;
+        this.swap(0, this.size - 1);
 
-        map.remove(tree.get(0));
-        tree.remove(0);
+        this.size--;
 
-        if (tree.size() <= 1)
-            return;
-        
-        tree.add(0, tree.get(tree.size() - 1));
-        tree.remove(tree.size() - 1);
-
-        int index = 1;
-        this.sinkDown(index);
+        sinkDown(1);
     }
 
     public void deleteLessThan(long value) {
-        while (map.get(tree.get(0)) < value) {
+        while (this.valueMap.get(this.tree[0]) < value)
             this.deleteMin();
-        }
     }
 
     public void improveValue(String key, long value) {
-        map.put(key, map.get(key) + value);
+        this.valueMap.put(key, this.valueMap.get(key) + value);
 
-        int index = tree.indexOf(key) + 1;
-        sinkDown(index);
+        int index = this.indexMap.get(key);
+        sinkDown(index + 1);
     }
 
     public long evaluate(long value) {
         this.deleteLessThan(value);
 
-        return tree.size();
+        return this.size;
     }
 }
