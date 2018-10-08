@@ -29,7 +29,7 @@ class State:
         self.value += object.value
 
     def add_object_index(self, object, index):
-        self.objects.insert(index + 1, object)
+        self.objects.insert(index, object)
         self.weight += object.weight
         self.value += object.value
 
@@ -61,43 +61,62 @@ def HCS(total_restarts, object_dict, T, M):
         state = random_restart(object_dict)
         state_error = error(state, T, M)
 
-        neighbor_state = None
-        neighbor_error = state_error
-       
-        index = 0
-        for object in state.objects:
-            state.remove_object(index)
-            if error(state, T, M) < neighbor_error:
-                neighbor_state = copy.copy(state)
-                neighbor_error = error(state, T, M)
-            state.add_object_index(object, index)
-            index += 1
 
-        for new_object in object_dict.values():
-            change = True
+        print('initial state')
+        for obj in state.objects:
+            print(obj.name, end = '  ')
+        print()
+
+        
+        while True:
+            neighbor_state = None
+            neighbor_error = state_error
+
+            index = 0
             for object in state.objects:
-                if new_object.name == object.name:
-                    change = False
-                    break
-            if change:
-                state.add_object(new_object)
+                state.remove_object(index)
                 if error(state, T, M) < neighbor_error:
-                    neighbor_state = copy.copy(state)
+                    neighbor_state = copy.deepcopy(state)
                     neighbor_error = error(state, T, M)
-                state.remove_last_object()
+                state.add_object_index(object, index)
+                
+                index += 1
 
-                for index in range(len(state.objects)):
-                    object = state.objects[index]
-                    state.remove_object(index)
+            for new_object in object_dict.values():
+                change = True
+                for object in state.objects:
+                    if new_object.name == object.name:
+                        change = False
+                        break
+                if change:
                     state.add_object(new_object)
                     if error(state, T, M) < neighbor_error:
-                        neighbor_state = copy.copy(state)
+                        neighbor_state = copy.deepcopy(state)
                         neighbor_error = error(state, T, M)
                     state.remove_last_object()
-                    state.add_object_index(object, index)
 
-        if neighbor_state:
-            best_states.append(neighbor_state)
+                    for index in range(len(state.objects)):
+                        object = state.objects[index]
+                       
+                        state.remove_object(index)
+                        state.add_object(new_object)
+                        
+                        if error(state, T, M) < neighbor_error:
+                            neighbor_state = copy.deepcopy(state)
+                            neighbor_error = error(state, T, M)
+
+                        state.remove_last_object()
+                        state.add_object_index(object, index)
+
+            if not neighbor_state:
+                break
+            else:
+                state = copy.deepcopy(neighbor_state)
+                state_error = neighbor_error
+
+        if state:
+            best_states.append(state)
+
     return best_states
 
 def main():
