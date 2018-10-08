@@ -36,8 +36,8 @@ class State:
         self.value -= self.objects[-1].value
         self.objects = self.objects[:-1]
 
-#Define function to search using Iterative Deeping Algorithm and return the solution if it exists
-def IDS(state, depth, object_dict, T, M):
+#Define function to search state space using Depth First Search and return the solution if it exists
+def DFS(state, depth, object_dict, T, M):
     #Return state if it is a solution
     if depth == 0:
         if state.value >= T and state.weight <= M:
@@ -48,18 +48,33 @@ def IDS(state, depth, object_dict, T, M):
     else:
         for i in range(state.objects[-1].index + 1, len(object_dict) + 1):
             state.add(object_dict[str(i)])
-            state_found = IDS(state, depth - 1, object_dict, T, M)
+            state_found = DFS(state, depth - 1, object_dict, T, M)
             if state_found:
                 return state_found
             state.remove()
         return None
+
+#Define function to search state space using Iterative Deepening and return the solution if it exists
+def ID(object_dict, T, M):
+    #Call DFS for all depths
+    for depth in range(1, len(object_dict) + 1):
+        solution = DFS(State([Object(None, 0, 0, 0)]), depth, object_dict, T, M)
+        if solution:
+            return solution
 
 #Define main function
 def main():
     #Read input and store necessary information
     object_dict = {}
 
-    file = open('input2.txt', 'r')
+    while True:
+        try:
+            file = open(input('\nEnter input file name: ') + '.txt', 'r')
+            break
+        except:
+            print('File not found.')
+            continue
+
     i = 1
     for line in file:
         line = line.strip().split()
@@ -77,16 +92,15 @@ def main():
             i += 1
 
     #Search state space using IDS and print solution
-    for i in range(1, len(object_dict) + 1):
-        solution = IDS(State([Object('zero', 0, 0, 0)]), i, object_dict, T, M)
-        if solution:
-            print('Solution:', end = ' ')
-            for i in range(1, len(solution.objects)):
-                print(solution.objects[i].name, end = ' ')
-            print()
-            break
+    solution = ID(object_dict, T, M)
+    if solution:
+        print('\nSolution:', end = ' ')
+        for i in range(1, len(solution.objects)):
+            print(solution.objects[i].name, end = ' ')
+        print()
+    else:
+        print('\nNo solution')
 
-    if not solution:
-        print('No solution')
+    print()
 
 main()
