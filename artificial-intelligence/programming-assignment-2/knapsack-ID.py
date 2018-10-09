@@ -1,3 +1,6 @@
+# Import packages
+import sys
+
 # Define Object class to reflect given objects
 class Object:
     # Define variables
@@ -40,7 +43,7 @@ class State:
 def DFS(state, depth, object_dict, T, M):
     # Return state if it is a solution
     if depth == 0:
-        if state.value >= T and state.weight <= M:
+        if ((state.value > T) or (abs(state.value - T) < sys.float_info.epsilon)) and ((state.weight < M) or (abs(M - state.weight) < sys.float_info.epsilon)):
             return state
         else:
             return None
@@ -86,13 +89,13 @@ def main():
 
         # Assign target value and max weight to T and M respectively
         if len(line) == 2:
-            T = int(float(line[0]))
-            M = int(float(line[1]))
+            T = float(line[0])
+            M = float(line[1])
         # Add objects to object_dict
         else:
             name = line[0]
-            value = int(float(line[1]))
-            weight = int(float(line[2]))
+            value = float(line[1])
+            weight = float(line[2])
 
             object_dict[str(i)] = Object(name, i, weight, value)
             i += 1
