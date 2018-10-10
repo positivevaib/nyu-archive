@@ -31,6 +31,6 @@ Class descriptions:
 
 Running the pogram:
 
-- The program, much like knapsack-ID.py required Python 3 or above. 
+- The program, much like knapsack-ID.py requires Python 3 or above. 
 
 - The procedure to run the program is exactly the same as knapsack-ID.py
