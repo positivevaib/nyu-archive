@@ -1,3 +1,9 @@
+
+/* To do:
+          Add all rooms in a loop instead of just the room with the back edge
+*/
+
+
 import java.io.*;
 import java.util.*;
 
@@ -5,7 +11,7 @@ public class Solution {
     static Graph G;
     static char[] colorList;
     static int[] parentList;
-    static int[] backEdges;
+    static ArrayList<Integer> backEdges = new ArrayList<>();
 
     public static void main(String[] args) {
         Scanner input = new Scanner(System.in);
@@ -17,11 +23,20 @@ public class Solution {
         for (int i = 0; i < totEdges; i++) {
             int from = input.nextInt();
             int to = input.nextInt();
-        
+
             Solution.G.addEdge(from, to);
         }
 
         Solution.DFS();
+
+        if (Solution.backEdges.size() == 0)
+            System.out.println(0);
+        else {
+            System.out.println(1);
+            
+            for (int i = 0; i < Solution.backEdges.size(); i++)
+                System.out.print(Solution.backEdges.get(i) + " ");
+        }
     }
 
     static void DFS() {
@@ -42,11 +57,17 @@ public class Solution {
         Solution.colorList[vertex - 1] = 'g';
 
         Edge edge = Solution.G.edgeList[vertex - 1];
-        while (edge.next != null) {
+        while (edge != null) {
             if (Solution.colorList[edge.to - 1] == 'w') {
                 Solution.parentList[edge.to - 1] = vertex;
                 Solution.recDFS(edge.to);
             }
+            else if (Solution.colorList[edge.to - 1] == 'g') {
+                if (!Solution.backEdges.contains(vertex))
+                    Solution.backEdges.add(vertex);
+            }
+
+            edge = edge.next;
         }
 
         Solution.colorList[vertex - 1] = 'b';
@@ -71,7 +92,7 @@ class Edge {
     int to;
     Edge next;
 
-    Node(int to, Edge next) {
+    Edge(int to, Edge next) {
         this.to = to;
         this.next = next;
     }
