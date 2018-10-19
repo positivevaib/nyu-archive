@@ -22,16 +22,7 @@ public class Solution {
             Solution.G.addEdge(from, to);
         }
 
-        for (int i = 0; i < G.edgeList.length; i++) {
-            System.out.print("\n"+ (i + 1) +" --> ");
-            Edge edge = G.edgeList[i];
-            if (edge != null) {
-            while (edge.next != null) {
-                System.out.print(edge.to + " ");
-                edge = edge.next;
-            }
-            System.out.print(edge.to + " ");         }
-        }
+        input.close();
 
         Solution.DFS();
 
@@ -41,17 +32,13 @@ public class Solution {
             System.out.println(1);
             
             ArrayList<Integer> loopVertices = new ArrayList<>();
-            System.out.println(loopStart + " " + loopEnd);
             while (Solution.loopEnd != Solution.loopStart) {
                 loopVertices.add(Solution.loopEnd);
-                System.out.println(parentList[loopEnd - 1]);
                 Solution.loopEnd = Solution.parentList[Solution.loopEnd - 1];
             }
             loopVertices.add(Solution.loopEnd);
 
-            Collections.sort(loopVertices);
-
-            for (int i = 0; i < loopVertices.size(); i++)
+            for (int i = loopVertices.size() - 1; i >= 0; i--)
                 System.out.print(loopVertices.get(i) + " ");
         }
     }
@@ -77,9 +64,11 @@ public class Solution {
 
     static boolean recDFS(int vertex) {
         Solution.colorList[vertex - 1] = 'g';
+        
         boolean recurse = true;
+
         Edge edge = Solution.G.edgeList[vertex - 1];
-        while (edge != null) {
+        while (edge != null && recurse) {
             if (Solution.colorList[edge.to - 1] == 'w') {
                 Solution.parentList[edge.to - 1] = vertex;
                 recurse = Solution.recDFS(edge.to);
@@ -87,9 +76,9 @@ public class Solution {
             else if (Solution.colorList[edge.to - 1] == 'g') {
                 Solution.loopStart = edge.to;
                 Solution.loopEnd = vertex;
-
                 return false;
             }
+            
             edge = edge.next;
         }
 
