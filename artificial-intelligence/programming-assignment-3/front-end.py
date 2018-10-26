@@ -16,14 +16,12 @@ for vertex in range(total_vertices):
 	output_file.write('\n')
 
 # No pair of vertices are traversed at the same time
-output_file.write('\n')
 for sequence_number in range(1, total_vertices + 1):
 	for vertex in range(total_vertices):
 		for other_vertex in range(vertex + 1, total_vertices):
 			output_file.write('-' + str((vertex * total_vertices) + sequence_number) + ' ' + '-' + str((other_vertex * total_vertices) + sequence_number) + '\n')
 
 # Two vertices that don't have an edge between them cannot be traversed in 1 unit time
-output_file.write('\n')
 for vertex in range(total_vertices):
 	for other_vertex in range(total_vertices):
 		if (vertex != other_vertex) and (chr(ord('A') + vertex) + ' ' + chr(ord('A') + other_vertex) not in edges):
@@ -31,7 +29,7 @@ for vertex in range(total_vertices):
 				output_file.write('-' + str((vertex * total_vertices) + sequence_number) + ' ' + '-' + str((other_vertex * total_vertices) + sequence_number + 1) + '\n')
 
 # Keys
-output_file.write('\n0')
+output_file.write('0')
 vertex_number = 1
 for vertex in range(total_vertices):
 	for sequence_number in range(1, total_vertices + 1):
