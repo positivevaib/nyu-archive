@@ -30,5 +30,6 @@ else:
     for sequence_number in range(len(keys)):
         for vertex in path:
             if str(sequence_number) in keys[vertex]:
-                print(keys[vertex][0] + keys[vertex][1], end = ' ')
+                print(keys[vertex][0], end = ' ')
+                break
     print()
