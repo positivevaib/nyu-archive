@@ -12,7 +12,9 @@ output_file = open('davis-putnam-input.txt', 'w+')
 # Every vertex is traversed at some time
 for vertex in range(total_vertices):
 	for sequence_number in range(1, total_vertices + 1):
-		output_file.write(str((vertex * total_vertices) + sequence_number) + ' ')
+		output_file.write(str((vertex * total_vertices) + sequence_number))
+		if sequence_number != total_vertices:
+			output_file.write(' ')
 	output_file.write('\n')
 
 # No pair of vertices are traversed at the same time
