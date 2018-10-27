@@ -1,9 +1,9 @@
 # Import modules
+import sys
 import copy
 
-# Load input data
-input_file = open('davis-putnam-input.txt', 'r')
-input_data = input_file.read().split('\n')
+# Read input
+input_data = sys.stdin.read().split('\n')
 
 # Propositions
 propositions = []
@@ -138,19 +138,17 @@ def davis_putnam(total_atoms, propositions):
 # Call Davis-Putnam
 values = davis_putnam(len(keys), propositions)
 
-# Create output file and write data
-output_file = open('back-end-input.txt', 'w+')
-
+# Generate output
 # Values
 if values:
     for value_index in range(len(values)):
-        output_file.write(str(value_index + 1) + ' ')
-        output_file.write(str(values[value_index]) + '\n')
+        sys.stdout.write(str(value_index + 1) + ' ')
+        sys.stdout.write(str(values[value_index]) + '\n')
 
 # Keys
-output_file.write('0\n')
+sys.stdout.write('0\n')
 
 for key_index in range(-1, -len(keys) - 1, -1):
-    output_file.write(keys[key_index][0] + ' ' + keys[key_index][1] + ' ' + keys[key_index][2])
+    sys.stdout.write(keys[key_index][0] + ' ' + keys[key_index][1] + ' ' + keys[key_index][2])
     if key_index != -len(keys):
-        output_file.write('\n')
+        sys.stdout.write('\n')
