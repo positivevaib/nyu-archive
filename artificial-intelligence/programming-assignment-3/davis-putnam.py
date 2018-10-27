@@ -139,9 +139,7 @@ values = davis_putnam(len(keys), propositions)
 # Create output file and write data
 output_file = open('back-end-input.txt', 'w+')
 
-if not values:
-    output_file.write('0\n')
-else:
+if values:
     for value_index in range(len(values)):
         output_file.write(str(value_index + 1) + ' ')
         output_file.write(str(values[value_index]) + '\n')
