@@ -1,6 +1,8 @@
-# Load input data
-input_file = open('back-end-input.txt', 'r')
-input_data = input_file.read().split('\n')
+# Import modules
+import sys
+
+# Read input
+input_data = sys.stdin.read().split('\n')
 
 # Values
 values = []
