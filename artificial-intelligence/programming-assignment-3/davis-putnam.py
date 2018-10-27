@@ -5,6 +5,7 @@ import copy
 input_file = open('davis-putnam-input.txt', 'r')
 input_data = input_file.read().split('\n')
 
+# Propositions
 propositions = []
 for proposition in input_data:
     proposition = proposition.split(' ')
@@ -12,6 +13,7 @@ for proposition in input_data:
         break
     propositions.append(proposition)
 
+# Keys
 keys = []
 for key_index in range(-1, -len(input_data), -1):
     key = input_data[key_index].split(' ')
@@ -139,11 +141,13 @@ values = davis_putnam(len(keys), propositions)
 # Create output file and write data
 output_file = open('back-end-input.txt', 'w+')
 
+# Values
 if values:
     for value_index in range(len(values)):
         output_file.write(str(value_index + 1) + ' ')
         output_file.write(str(values[value_index]) + '\n')
 
+# Keys
 output_file.write('0\n')
 
 for key_index in range(-1, -len(keys) - 1, -1):
