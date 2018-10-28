@@ -1,12 +1,11 @@
 # Import modules
 import sys
 
-# Load input data
-input_file = open('front-end-input.txt', 'r')
-input_data = input_file.read()
+# Read input
+input_data = sys.stdin.read().split('\n')
 
 total_vertices = int(input_data[0])
-edges = input_data[2:].split('\n')
+edges = input_data[1:]
 
 # Generate output
 # Propositions
