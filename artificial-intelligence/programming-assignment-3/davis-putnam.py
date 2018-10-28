@@ -149,6 +149,9 @@ if values:
 sys.stdout.write('0\n')
 
 for key_index in range(-1, -len(keys) - 1, -1):
-    sys.stdout.write(keys[key_index][0] + ' ' + keys[key_index][1] + ' ' + keys[key_index][2])
+    for i in range(len(keys[key_index])):
+        if i == len(keys[key_index]):
+            sys.stdout.write(keys[key_index][i])
+        sys.stdout.write(keys[key_index][i] + ' ')
     if key_index != -len(keys):
         sys.stdout.write('\n')
