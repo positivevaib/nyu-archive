@@ -85,6 +85,25 @@ int f4(int i)
 }
 
 /*******************************************************/
+
+int check(int x)
+{
+	int val = 2;
+	while (x != 0) {
+		val += x;
+		x -= 1;
+	}
+	return val;
+}
+
+int count(int x)
+{
+	while (x != 0) {
+		x /= 2;
+	}
+	return 0;
+}
+
 /*This function returns specific outputs for specific numbers. So, in essence, the solution could just have been hardcoded from running the reference file. But I have written the return statements more in line with what was in the assembly as evidence for actually having read the assembly.*/
 int f5( int x)
 {
@@ -92,13 +111,13 @@ int f5( int x)
 		return 5*x;
 	else {
 		if (x == 1)
-			return 8*x + 1;
+			return 8*x + x;
 		else if (x == 2)
 			return 10 + x;
 		else if (x == 3)
-			return 2+3+2+1;
+			return check(x);
 		else if (x == 4)
-			return 0;
+			return count(x);
 		else
 			return 17;				
 	}
