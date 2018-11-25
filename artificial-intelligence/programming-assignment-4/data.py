@@ -17,7 +17,7 @@ class NonTerminal():
             total_occurences += rule_and_prob[1]
             
         for rule_and_prob in self.rules:
-            rule_and_prob[1] = round(rule_and_prob[1]/total_occurences, 2)
+            rule_and_prob[1] = round(rule_and_prob[1]/total_occurences, 4)
 
 # define functions
 def extract_rules(data, sentence, idx):
