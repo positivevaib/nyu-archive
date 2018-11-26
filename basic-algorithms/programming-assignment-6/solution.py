@@ -57,15 +57,11 @@ def main():
     # read input
     input_data = sys.stdin.read().split('\n')
 
-    degree = int(input_data[0])
-
-    f = []
-    for coefficient in input_data[1].split(' '):
-        f.append(int(coefficient))
-
-    g = []
-    for coefficient in input_data[2].split(' '):
-        g.append(int(coefficient))
+    input_data[1] = input_data[1].split(' ')
+    f = [int(coefficient) for coefficient in input_data[1]]
+    
+    input_data[2] = input_data[2].split(' ')
+    g = [int(coefficient) for coefficient in input_data[2]]
 
     # multiply
     product = karatsuba_multiplication(f, g)
