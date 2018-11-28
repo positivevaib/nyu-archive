@@ -50,7 +50,7 @@ for i in range(len(test_set)):
     sentence_parse = cyk_parser.parse()
     if not sentence_parse and not args.abridge:
         print(test_labels[i], 'This sentence cannot be parsed. Wrong')
-    elif sentence_parse == test_labels[i]:
+    elif sentence_parse.split() == test_labels[i].split():
         correct += 1
         if not args.abridge:
             print(sentence_parse, 'Right')
