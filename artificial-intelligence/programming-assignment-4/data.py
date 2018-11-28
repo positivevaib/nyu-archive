@@ -57,7 +57,7 @@ def process_dataset(path, dataset, training_set_size):
 
         training_data = open(path, 'r').read().split('\n')[:training_set_size]
         for sentence in training_data:
-            sentence = sentence.split(' ')
+            sentence = sentence.split()
             _ = extract_rules(data, sentence, 0)
         for non_terminal in data.values():
             non_terminal.compute_probs()
@@ -69,7 +69,7 @@ def process_dataset(path, dataset, training_set_size):
 
         test_data = open(path, 'r').read().split('\n')[training_set_size:]
         for sentence in test_data:
-            sentence = sentence.split(' ')
+            sentence = sentence.split()
             processed_sentence = []
             for word in sentence:
                 if not word.startswith('*') and not word.startswith('+'):
