@@ -1,0 +1,1 @@
+This is the archive of the assignments and other related work for Professor Victor Shoup's Basic Algorithms class, taken in Fall 2018.
