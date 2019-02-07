@@ -9,7 +9,7 @@ public class Linker {
     static Module[] modules = null;
 
     static ArrayList<Integer> memMap = new ArrayList<>();
-    static ArrayList<Item> symbolList = new ArrayList<>();
+    static HashMap<String, Integer> symbolList = new HashMap<>();
     
     public static void main(String[] args) {
         
@@ -32,7 +32,7 @@ public class Linker {
         int baseAdd = 0;
 
         // Read data
-        for (int mod = 0; i < totModules; i++) {
+        for (int mod = 0; mod < totModules; mod++) {
             // Instantiate and save Module
             Module module = new Module(baseAdd);
             Linker.modules[mod] = module;
@@ -41,12 +41,24 @@ public class Linker {
             module.totDefs = in.nextInt();
             if (module.totDefs != 0)
                 for (int def = 0; def < module.totDefs; def++) {
-                    // Read, instantiate and save symbols
+                    // Read and save symbols
                     String name = in.next();
                     int add = in.nextInt();
 
-                    module.
+                    Linker.symbolList.put(name, add + baseAdd);
                 }
+
+            // Read use list
+            module.totUses = in.nextInt();
+            if (module.totUses != 0)
+                for (int use = 0; use < module.totUses; use++) {
+                    // Pass through
+                    in.next();
+                    in.nextInt();
+                }
+
+            // Read program text
+            module.totWords = in.nextInt();
         }
     }
 }
