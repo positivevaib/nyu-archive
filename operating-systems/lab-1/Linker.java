@@ -12,6 +12,7 @@ public class Linker {
     static HashMap<String, Item> symbolList = new HashMap<>();
 
     static ArrayList<String> usedSymbolList = new ArrayList<>();
+    static ArrayList<Integer> multiUseList = new ArrayList<>();
     
     public static void main(String[] args) {
         // Link program
@@ -65,12 +66,18 @@ public class Linker {
             // Read use list
             int totUses = in.nextInt();
 
-            module.uses = new Item[totUses];
+            module.uses = new HashMap<>();
             for (int use = 0; use < totUses; use++) {
                 // Read and save symbol uses
-                module.uses[use] = new Item(in.next(), in.nextInt());
+                String symbol = in.next();
+                int add = in.nextInt();
 
-                Linker.usedSymbolList.add(module.uses[use].name);
+                if (module.uses.containsKey(add))
+                    Linker.multiUseList.add(add + baseAdd);
+
+                module.uses.put(add, symbol);
+
+                Linker.usedSymbolList.add(symbol);
             }
 
             // Read program text
@@ -80,6 +87,9 @@ public class Linker {
             for (int word = 0; word < totWords; word++) {
                 // Read and save program text
                 module.words[word] = new Item(in.next(), in.nextInt());
+
+                if (Linker.multiUseList.contains(word + baseAdd))
+                    module.words[word].error = "Error: Multiple symbols used here. Last one used.";
             }
 
             // Update baseAdd
@@ -96,9 +106,8 @@ public class Linker {
             Module module = Linker.modules[mod];
 
             // Resolve external addresses
-            for (int use = 0; use < module.uses.length; use++) {
-                String symbol = module.uses[use].name;
-                int add = module.uses[use].val;
+            for (int add: module.uses.keySet()) {
+                String symbol = module.uses.get(add);
 
                 int pointer = module.words[add].val % 1000;
 
@@ -179,7 +188,7 @@ class Module {
     int baseAdd = 0;
 
     Item[] defs = null;
-    Item[] uses = null;
+    HashMap<Integer, String> uses = null;
     Item[] words = null;
 
     // Constructor
