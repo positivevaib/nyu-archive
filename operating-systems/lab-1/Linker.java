@@ -8,14 +8,19 @@ public class Linker {
 
     static Module[] modules = null;
 
-    static ArrayList<Integer> memMap = new ArrayList<>();
-    static HashMap<String, Integer> symbolList = new HashMap<>();
+    static ArrayList<Item> memMap = new ArrayList<>();
+    static HashMap<String, Item> symbolList = new HashMap<>();
+
+    static ArrayList<String> usedSymbolList = new ArrayList<>();
     
     public static void main(String[] args) {
-        
+        // Link program
+        firstPass();
+        secondPass();
+        printOut();
     }
 
-    // Method to perform linker's first pass
+    // Method to perform Linker's first pass
     public static void firstPass() {
         // Instantiate Scanner
         Scanner in = new Scanner(System.in);
@@ -38,28 +43,133 @@ public class Linker {
             Linker.modules[mod] = module;
 
             // Read definition list
-            module.totDefs = in.nextInt();
-            if (module.totDefs != 0)
-                for (int def = 0; def < module.totDefs; def++) {
-                    // Read and save symbols
-                    String name = in.next();
-                    int add = in.nextInt();
+            int totDefs = in.nextInt();
 
-                    Linker.symbolList.put(name, add + baseAdd);
-                }
+            module.defs = new Item[totDefs];
+            for (int def = 0; def < totDefs; def++) {
+                // Read and save symbols
+                String name = in.next();
+                int add = in.nextInt();
+
+                Item symbol = new Item(name, add + baseAdd);
+                symbol.defModule = mod;
+                
+                module.defs[def] = symbol;
+
+                if (Linker.symbolList.containsKey(name))
+                    symbol.error = "Error: This variable is multiply-defined. Last value used.";
+
+                Linker.symbolList.put(name, symbol);
+            }
 
             // Read use list
-            module.totUses = in.nextInt();
-            if (module.totUses != 0)
-                for (int use = 0; use < module.totUses; use++) {
-                    // Pass through
-                    in.next();
-                    in.nextInt();
-                }
+            int totUses = in.nextInt();
+
+            module.uses = new Item[totUses];
+            for (int use = 0; use < totUses; use++) {
+                // Read and save symbol uses
+                module.uses[use] = new Item(in.next(), in.nextInt());
+
+                Linker.usedSymbolList.add(module.uses[use].name);
+            }
 
             // Read program text
-            module.totWords = in.nextInt();
+            int totWords = in.nextInt();
+
+            module.words = new Item[totWords];
+            for (int word = 0; word < totWords; word++) {
+                // Read and save program text
+                module.words[word] = new Item(in.next(), in.nextInt());
+            }
+
+            // Update baseAdd
+            baseAdd += totWords;
         }
+    }
+
+    // Method to perform Linker's second pass
+    public static void secondPass() {
+        // Resolve relative and external addresses and store in memory map
+        int totModules = Linker.modules.length;
+
+        for (int mod = 0; mod < totModules; mod++) {
+            Module module = Linker.modules[mod];
+
+            // Resolve external addresses
+            for (int use = 0; use < module.uses.length; use++) {
+                String symbol = module.uses[use].name;
+                int add = module.uses[use].val;
+
+                int pointer = module.words[add].val % 1000;
+
+                boolean state = true;
+                while (state) {
+                    int symbolVal = 111;
+
+                    if (!Linker.symbolList.containsKey(symbol))
+                        module.words[add].error = "Error: " + symbol + " is not defined. 111 used.";
+                    else   
+                        symbolVal = Linker.symbolList.get(symbol).val;
+
+                    module.words[add].val = ((module.words[add].val / 1000) * 1000) + symbolVal;
+
+                    if (pointer == 777)
+                        state = false;
+                    else {
+                        add = pointer;
+                        pointer = module.words[add].val % 1000;
+                    }
+                }
+            }
+
+            for (int word = 0; word < module.words.length; word++) {
+                if (module.words[word].name.equals("A") && (module.words[word].val % 1000) >= Linker.Size) {
+                    module.words[word].val = ((module.words[word].val / 1000) * 1000) + (Linker.Size - 1);
+                    module.words[word].error = "Error: A type address exceeds machine size. Max legal value used.";
+                }
+                else if (module.words[word].name.equals("R")) {
+                    if ((module.words[word].val % 1000) >= module.words.length) {
+                        module.words[word].val = module.baseAdd;
+                        module.words[word].error = "Error: R type address exceeds module size. 0 (relative) used.";
+                    }
+                    else
+                        module.words[word].val += module.baseAdd;
+                }
+                    
+                Linker.memMap.add(module.words[word]);
+            }
+        }
+    }
+
+    // Method to print output
+    public static void printOut() {
+        System.out.println("Symbol list:");
+        for (String symbol: Linker.symbolList.keySet()) {
+            if (Linker.symbolList.get(symbol).error != null)
+                System.out.println(symbol + ": " + Linker.symbolList.get(symbol).val + " " + Linker.symbolList.get(symbol).error);
+            else   
+                System.out.println(symbol + ": " + Linker.symbolList.get(symbol).val);
+        }
+
+        System.out.println("\nMemory map:");
+        for (int i = 0; i < Linker.memMap.size(); i++) {
+            if (Linker.memMap.get(i).error != null)
+                System.out.println(i + ": " + Linker.memMap.get(i).val + " " + Linker.memMap.get(i).error);
+            else
+                System.out.println(i + ": " + Linker.memMap.get(i).val);
+        }
+
+        boolean warnUsed = false;
+        for (String symbol: Linker.symbolList.keySet()) {
+            if (!Linker.usedSymbolList.contains(symbol)) {
+                System.out.print("\nWarning: " + symbol + " was defined in module " + Linker.symbolList.get(symbol).defModule + " but never used.");
+                warnUsed = true;
+            }
+        }
+
+        if (warnUsed)
+            System.out.println();
+
     }
 }
 
@@ -68,11 +178,8 @@ class Module {
     // Instance variables
     int baseAdd = 0;
 
-    int totDefs = 0;
-    int totUses = 0;
-    int totWords = 0;
-
-    
+    Item[] defs = null;
+    Item[] uses = null;
     Item[] words = null;
 
     // Constructor
@@ -86,6 +193,11 @@ class Item {
     // Instance variables
     String name = null;
     int val = 0;
+
+    String error = null;
+
+    int defModule = 0;
+    int totUses = 0;
 
     // Constructor
     public Item(String name, int val) {
