@@ -131,6 +131,7 @@ public class Linker {
                 }
             }
 
+            // Check for and resolve errors
             for (int word = 0; word < module.words.length; word++) {
                 if (module.words[word].name.equals("A") && (module.words[word].val % 1000) >= Linker.Size) {
                     module.words[word].val = ((module.words[word].val / 1000) * 1000) + (Linker.Size - 1);
@@ -152,6 +153,7 @@ public class Linker {
 
     // Method to print output
     public static void printOut() {
+        // Print symbol list
         System.out.println("Symbol list:");
         for (String symbol: Linker.symbolList.keySet()) {
             if (Linker.symbolList.get(symbol).error != null)
@@ -160,6 +162,7 @@ public class Linker {
                 System.out.println(symbol + ": " + Linker.symbolList.get(symbol).val);
         }
 
+        // Print memory map
         System.out.println("\nMemory map:");
         for (int i = 0; i < Linker.memMap.size(); i++) {
             if (Linker.memMap.get(i).error != null)
@@ -168,6 +171,7 @@ public class Linker {
                 System.out.println(i + ": " + Linker.memMap.get(i).val);
         }
 
+        // Print warnings
         boolean warnUsed = false;
         for (String symbol: Linker.symbolList.keySet()) {
             if (!Linker.usedSymbolList.contains(symbol)) {
@@ -210,7 +214,6 @@ class Item {
 
     // Constructor
     public Item(String name, int val) {
-        // Initialize instance variables
         this.name = name;
         this.val = val;
     }
