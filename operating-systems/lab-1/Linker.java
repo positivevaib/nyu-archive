@@ -139,7 +139,7 @@ public class Linker {
                 }
                 else if (module.words[word].name.equals("R")) {
                     if ((module.words[word].val % 1000) >= module.words.length) {
-                        module.words[word].val = module.baseAdd;
+                        module.words[word].val = ((module.words[word].val / 1000) * 1000) + module.baseAdd;
                         module.words[word].error = "Error: R type address exceeds module size. 0 (relative) used.";
                     }
                     else
