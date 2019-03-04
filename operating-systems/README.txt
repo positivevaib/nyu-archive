@@ -1,0 +1,1 @@
+This is the archive of the assignments and other related work for Professor Yan Shvartzshanider's Operating Systems class, taken in Spring 2019.
