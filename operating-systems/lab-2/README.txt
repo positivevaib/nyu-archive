@@ -18,7 +18,7 @@ Running the program:
 	javac Scheduler.java
 	java Scheduler input-x
 
-- Another command line that could be provided is the flag for detailed output. This flag needs to be given before the input file name.
+- Another command line argument that could be provided is the flag for detailed output. This flag needs to be given before the input file name.
 	java Scheduler --verbose input-x
 
 - The program outputs the results of all four scheduling algorithms sequentially; FCFS, RR, Uniprocessor and SJF. As a result, depending on the terminal settings, some of the earlier output might not be easily accessible on the screen, especially when there are a large number of processes to schedule. Therefore, it is recommended to redirect the output to a text file, especially when using the detailed output flag.
