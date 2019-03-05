@@ -81,6 +81,11 @@ public class Scheduler {
         Process running = null;
         Process ready = null;
 
+        Process processBlockedThisCycle = null;
+
+        boolean IOUtilFlag = false;
+        double IOUtilTime = 0;
+
         int currentCycle = 0;
         while (!allProcessesTerminated) {
             // Print detailed output, if verbose
@@ -119,12 +124,15 @@ public class Scheduler {
                         running.remIOBurst = randomOS(running.IO, "IO") + 1;
                         running.IOTime--;
 
+                        processBlockedThisCycle = running;
+
                         running = null;
                     }
                 }
             }
 
             // Check on blocked processes
+            IOUtilFlag = false;
             for (Process p: processes) {
                 if (p.currentState.equals("blocked")) {
                     p.remIOBurst--;
@@ -135,6 +143,14 @@ public class Scheduler {
                         p.readyBurst = -1;
                         p.waitTime--;
                     }
+
+                    if (!IOUtilFlag && p != processBlockedThisCycle) {
+                        IOUtilFlag = true;
+                        IOUtilTime++;
+                    }
+
+                    if (p == processBlockedThisCycle)
+                        processBlockedThisCycle = null;
                 }
             }
 
@@ -188,7 +204,6 @@ public class Scheduler {
 
         // Print results and summary
         double CPUUtilTime = 0;
-        double IOUtilTime = 0;
         int totTurnaroundTime = 0;
         int totWaitTime = 0;
 
@@ -203,7 +218,6 @@ public class Scheduler {
             System.out.println();
 
             CPUUtilTime += (p.finishTime - p.A - p.IOTime - p.waitTime);
-            IOUtilTime += (p.IOTime);
             totTurnaroundTime += (p.finishTime - p.A);
             totWaitTime += p.waitTime;
 
@@ -246,7 +260,16 @@ public class Scheduler {
         Process running = null;
         Process ready = null;
 
-        int quantum = 2;
+        boolean IOUtilFlag = false;
+        double IOUtilTime = 0;
+
+        Process processBlockedThisCycle = null;
+
+        int outRemCPUBurst = 0;
+
+        int quantumParam = 2;
+
+        int currentQuantum = 2;
         int currentCycle = 0;
 
         while (!allProcessesTerminated) {
@@ -256,8 +279,16 @@ public class Scheduler {
 
                 for (Process p: processes) {
                     System.out.printf(" %10s ", p.currentState);
-                    if (p.currentState.equals("running"))
-                        System.out.print(p.remCPUBurst);
+                    if (p.currentState.equals("running")) {
+                        if (outRemCPUBurst == 0) {
+                            if (p.remCPUBurst > quantumParam)
+                                outRemCPUBurst = 2;
+                            else
+                                outRemCPUBurst = p.remCPUBurst;
+                        }
+
+                        System.out.print(outRemCPUBurst);
+                    }
                     else if (p.currentState.equals("blocked"))
                         System.out.print(p.remIOBurst);
                     else
@@ -269,10 +300,12 @@ public class Scheduler {
 
             // Check on the running process
             if (running != null) {
-                quantum--;
+                currentQuantum--;
 
                 running.remCPUBurst--;
                 running.remCPUTime--;
+
+                outRemCPUBurst--;
 
                 if (running.remCPUBurst == 0) {
                     if (running.remCPUTime == 0) {
@@ -281,17 +314,23 @@ public class Scheduler {
 
                         running.finishTime = currentCycle;
 
+                        outRemCPUBurst = 0;
+
                         running = null;
                     }
                     else {
                         running.currentState = "blocked";
                         running.remIOBurst = randomOS(running.IO, "IO") + 1;
                         running.IOTime--;
+                        
+                        processBlockedThisCycle = running;
+
+                        outRemCPUBurst = 0;
 
                         running = null;
                     }
                 }
-                else if (quantum == 0) {
+                else if (currentQuantum == 0) {
                     running.currentState = "ready";
                     running.readyBurst = -1;
                     running.waitTime--;
@@ -301,6 +340,7 @@ public class Scheduler {
             }
 
             // Check on blocked processes
+            IOUtilFlag = false;
             for (Process p: processes) {
                 if (p.currentState.equals("blocked")) {
                     p.remIOBurst--;
@@ -311,6 +351,14 @@ public class Scheduler {
                         p.readyBurst = -1;
                         p.waitTime--;
                     }
+
+                    if (!IOUtilFlag && p != processBlockedThisCycle) {
+                        IOUtilFlag = true;
+                        IOUtilTime++;
+                    }
+
+                    if (p == processBlockedThisCycle)
+                        processBlockedThisCycle = null;
                 }
             }
 
@@ -340,7 +388,7 @@ public class Scheduler {
                 running = ready;
                 ready = null;
 
-                quantum = 2;
+                currentQuantum = 2;
 
                 running.readyBurst = 0;
 
@@ -368,7 +416,6 @@ public class Scheduler {
 
         // Print results and summary
         double CPUUtilTime = 0;
-        double IOUtilTime = 0;
         int totTurnaroundTime = 0;
         int totWaitTime = 0;
 
@@ -383,7 +430,6 @@ public class Scheduler {
             System.out.println();
 
             CPUUtilTime += (p.finishTime - p.A - p.IOTime - p.waitTime);
-            IOUtilTime += (p.IOTime);
             totTurnaroundTime += (p.finishTime - p.A);
             totWaitTime += p.waitTime;
 
@@ -569,6 +615,11 @@ public class Scheduler {
         Process running = null;
         Process ready = null;
 
+        boolean IOUtilFlag = false;
+        double IOUtilTime = 0;
+
+        Process processBlockedThisCycle = null;
+
         int currentCycle = 0;
         while (!allProcessesTerminated) {
             // Print detailed output, if verbose
@@ -588,6 +639,7 @@ public class Scheduler {
                 System.out.println();
             }
 
+            IOUtilFlag = false;
             for (Process p: processes) {
                 // Check on running processes
                 if (p.currentState.equals("running")) {
@@ -608,6 +660,8 @@ public class Scheduler {
                             p.remIOBurst = randomOS(p.IO, "IO") + 1;
                             p.IOTime--;
 
+                            processBlockedThisCycle = p;
+
                             running = null;
                         }
                     }
@@ -623,6 +677,14 @@ public class Scheduler {
                         p.readyBurst = -1;
                         p.waitTime--;
                     }
+
+                    if (!IOUtilFlag && p != processBlockedThisCycle) {
+                        IOUtilFlag = true;
+                        IOUtilTime++;
+                    }
+
+                    if (p == processBlockedThisCycle)
+                        processBlockedThisCycle = null;
                 }
 
                 // Check on unstarted processes
@@ -675,7 +737,6 @@ public class Scheduler {
 
         // Print results and summary
         double CPUUtilTime = 0;
-        double IOUtilTime = 0;
         int totTurnaroundTime = 0;
         int totWaitTime = 0;
 
@@ -690,7 +751,6 @@ public class Scheduler {
             System.out.println();
 
             CPUUtilTime += (p.finishTime - p.A - p.IOTime - p.waitTime);
-            IOUtilTime += (p.IOTime);
             totTurnaroundTime += (p.finishTime - p.A);
             totWaitTime += p.waitTime;
 
@@ -796,6 +856,8 @@ class Process {
     boolean terminated = false;
 
     int readyBurst = 0;
+
+    boolean blockedThisCycle = false;
 
     int remCPUTime; 
     int remCPUBurst = 0;
