@@ -1,20 +1,21 @@
 import java.io.*;
+import java.lang.*;
 import java.util.*;
 
 // Scheduler class
 public class Scheduler {
     // Class vars
-    static boolean verbose = False;
+    static boolean verbose = false;
 
     static String inputFileName = null;
 
-    static Process[][] allProcesses = new Process[4][]; 
-
     static ArrayList<Integer> randNums = new ArrayList<>();
-    static Random random = new Random(1);
+    static int randIdx = -1;
 
     // Main method
     public static void main(String[] args) {
+        System.out.println();
+
         // Read random-numbers file
         try {
             Scanner fileIn = new Scanner(new File("random-numbers.txt"));
@@ -35,9 +36,9 @@ public class Scheduler {
 
             if (args.length == 2) {
                 if (!args[0].equals("--verbose"))
-                    throw Exception;
+                    throw (new Exception());
                 else   
-                    Scheduler.verbose = True;
+                    Scheduler.verbose = true;
             }
         }
         catch(Exception e) {
@@ -46,60 +47,565 @@ public class Scheduler {
         }
 
         // Call scheduling algorithms
+        //FCFS();
+        //RR();
+        Uniprogrammed();
     }
 
     // Method to implement FCFS scheduling algorithm
     public static void FCFS() {
+        // Reset randIdx
+        Scheduler.randIdx = -1;
+
         // Instantiate processes
         Process[] processes = instantiateProcesses();
-        Scheduler.allProcesses[0] = processes;
 
         // Check processes' states
-        boolean allProcessesTerminated = True;
-        for (Process p: Scheduler.processes)
+        boolean allProcessesTerminated = true;
+        for (Process p: processes) {
             allProcessesTerminated = allProcessesTerminated && p.terminated;
+        }
+
+        // Implement FCFS scheduling algorithm
+        if (Scheduler.verbose)
+            System.out.println("\n" + "This detailed printout gives the state and remaining burst for each process." + "\n");
+
+        Process running = null;
+        Process ready = null;
 
         int currentCycle = 0;
         while (!allProcessesTerminated) {
-            
+            // Print detailed output, if verbose
+            if (Scheduler.verbose) {
+                System.out.print("Before cycle    " + currentCycle + ": ");
+
+                for (Process p: processes) {
+                    System.out.printf(" %10s ", p.currentState);
+                    if (p.currentState.equals("running"))
+                        System.out.print(p.remCPUBurst);
+                    else if (p.currentState.equals("blocked"))
+                        System.out.print(p.remIOBurst);
+                    else
+                        System.out.print(0);
+                }
+
+                System.out.println();
+            }
+
+            // Check on the running process
+            if (running != null) {
+                running.remCPUBurst--;
+                running.remCPUTime--;
+
+                if (running.remCPUBurst == 0) {
+                    if (running.remCPUTime == 0) {
+                        running.currentState = "terminated";
+                        running.terminated = true;
+
+                        running.finishTime = currentCycle;
+
+                        running = null;
+                    }
+                    else {
+                        running.currentState = "blocked";
+                        running.remIOBurst = randomOS(running.IO, "IO") + 1;
+                        running.IOTime--;
+
+                        running = null;
+                    }
+                }
+            }
+
+            // Check on blocked processes
+            for (Process p: processes) {
+                if (p.currentState.equals("blocked")) {
+                    p.remIOBurst--;
+                    p.IOTime++;
+
+                    if (p.remIOBurst == 0) {
+                        p.currentState = "ready";
+                        p.readyBurst = -1;
+                        p.waitTime--;
+                    }
+                }
+            }
+
+            // Check on unstarted processes
+            for (Process p: processes) {
+                if (p.currentState.equals("unstarted") && p.A == currentCycle) {
+                    p.currentState = "ready";
+                    p.readyBurst = -1;
+                    p.waitTime = -1;
+                }
+            }
+
+            // Check on ready processes
+            for (Process p: processes) {
+                if (p.currentState.equals("ready")) {
+                    p.readyBurst++;
+                    p.waitTime++;
+
+                    if (ready == null)
+                        ready = p;
+                    else if (p.readyBurst > ready.readyBurst)
+                        ready = p;
+                }
+            }
+
+            if (running == null && ready != null) {
+                running = ready;
+                ready = null;
+
+                running.readyBurst = 0;
+
+                running.currentState = "running";
+
+                int randomBurst = randomOS(running.B, "CPU");
+                if (randomBurst > running.remCPUTime)
+                    randomBurst = running.remCPUTime;
+
+                running.remCPUBurst = randomBurst;
+            }
 
             // Re-check processes' states
-            allProcessesTerminated = True;
-            for (Process p: Scheduler.processes)
+            allProcessesTerminated = true;
+            for (Process p: processes)
                 allProcessesTerminated = allProcessesTerminated && p.terminated;
+
+            // Update currentCycle
+            currentCycle++;
         }
+
+        System.out.println("\nThe scheduling algorithm used was First Come First Served.\n");
+
+        // Print results and summary
+        double CPUUtilTime = 0;
+        double IOUtilTime = 0;
+        int totTurnaroundTime = 0;
+        int totWaitTime = 0;
+
+        int processNum = 0;
+        for (Process p: processes) {
+            System.out.println("Process " + processNum + ":");
+            System.out.println("        (A, B, C, IO) = (" + p.A + ", " + p.B + ", " + p.C + ", " + p.IO + ")");
+            System.out.println("        Finishing time: " + p.finishTime);
+            System.out.println("        Turnaround time: " + (p.finishTime - p.A));
+            System.out.println("        I/O time: " + p.IOTime);
+            System.out.println("        Waiting time: " + p.waitTime);
+            System.out.println();
+
+            CPUUtilTime += (p.finishTime - p.A - p.IOTime - p.waitTime);
+            IOUtilTime += (p.IOTime);
+            totTurnaroundTime += (p.finishTime - p.A);
+            totWaitTime += p.waitTime;
+
+            processNum++;
+        }
+
+        CPUUtilTime /= (currentCycle - 1);
+        IOUtilTime /= (currentCycle - 1);
+
+        double avgTurnaroundTime = (totTurnaroundTime + 0.0)/processes.length;
+        double avgWaitTime = (totWaitTime + 0.0)/processes.length;
+
+        System.out.println("Summary data:");
+        System.out.println("        Finishing time: " + (currentCycle - 1));
+        System.out.printf("        CPU utilization: %1.3f\n", CPUUtilTime);
+        System.out.printf("        IO utilization: %1.3f\n", IOUtilTime);
+        System.out.printf("        Throughput: %1.3f processes per hundred cycles.\n", ((processes.length/(currentCycle - 1.0)) * 100));
+        System.out.printf("        Average turnaround time: %1.3f\n", avgTurnaroundTime);
+        System.out.printf("        Average waiting time: %1.3f\n\n", avgWaitTime);
     }
 
-    // Method to read input file and instantiate processes
+    // Method to implement RR scheduling algorithm with quantum 2
+    public static void RR() {
+        // Reset randIdx
+        Scheduler.randIdx = -1;
+
+        // Instantiate processes
+        Process[] processes = instantiateProcesses();
+
+        // Check processes' states
+        boolean allProcessesTerminated = true;
+        for (Process p: processes) {
+            allProcessesTerminated = allProcessesTerminated && p.terminated;
+        }
+
+        // Implement RR scheduling algorithm
+        if (Scheduler.verbose)
+            System.out.println("\n" + "This detailed printout gives the state and remaining burst for each process." + "\n");
+
+        Process running = null;
+        Process ready = null;
+
+        int quantum = 2;
+        int currentCycle = 0;
+
+        while (!allProcessesTerminated) {
+            // Print detailed output, if verbose
+            if (Scheduler.verbose) {
+                System.out.print("Before cycle    " + currentCycle + ": ");
+
+                for (Process p: processes) {
+                    System.out.printf(" %10s ", p.currentState);
+                    if (p.currentState.equals("running"))
+                        System.out.print(p.remCPUBurst);
+                    else if (p.currentState.equals("blocked"))
+                        System.out.print(p.remIOBurst);
+                    else
+                        System.out.print(0);
+                }
+
+                System.out.println();
+            }
+
+            // Check on the running process
+            if (running != null) {
+                quantum--;
+
+                running.remCPUBurst--;
+                running.remCPUTime--;
+
+                if (running.remCPUBurst == 0) {
+                    if (running.remCPUTime == 0) {
+                        running.currentState = "terminated";
+                        running.terminated = true;
+
+                        running.finishTime = currentCycle;
+
+                        running = null;
+                    }
+                    else {
+                        running.currentState = "blocked";
+                        running.remIOBurst = randomOS(running.IO, "IO") + 1;
+                        running.IOTime--;
+
+                        running = null;
+                    }
+                }
+                else if (quantum == 0) {
+                    running.currentState = "ready";
+                    running.readyBurst = -1;
+                    running.waitTime--;
+
+                    running = null;
+                }
+            }
+
+            // Check on blocked processes
+            for (Process p: processes) {
+                if (p.currentState.equals("blocked")) {
+                    p.remIOBurst--;
+                    p.IOTime++;
+
+                    if (p.remIOBurst == 0) {
+                        p.currentState = "ready";
+                        p.readyBurst = -1;
+                        p.waitTime--;
+                    }
+                }
+            }
+
+            // Check on unstarted processes
+            for (Process p: processes) {
+                if (p.currentState.equals("unstarted") && p.A == currentCycle) {
+                    p.currentState = "ready";
+                    p.readyBurst = -1;
+                    p.waitTime = -1;
+                }
+            }
+
+            // Check on ready processes
+            for (Process p: processes) {
+                if (p.currentState.equals("ready")) {
+                    p.readyBurst++;
+                    p.waitTime++;
+
+                    if (ready == null)
+                        ready = p;
+                    else if (p.readyBurst > ready.readyBurst)
+                        ready = p;
+                }
+            }
+
+            if (running == null && ready != null) {
+                running = ready;
+                ready = null;
+
+                quantum = 2;
+
+                running.readyBurst = 0;
+
+                running.currentState = "running";
+
+                if (running.remCPUBurst == 0) {
+                    int randomBurst = randomOS(running.B, "CPU");
+                    if (randomBurst > running.remCPUTime)
+                        randomBurst = running.remCPUTime;
+    
+                    running.remCPUBurst = randomBurst;
+                }
+            }
+
+            // Re-check processes' states
+            allProcessesTerminated = true;
+            for (Process p: processes)
+                allProcessesTerminated = allProcessesTerminated && p.terminated;
+
+            // Update currentCycle
+            currentCycle++;
+        }
+
+        System.out.println("\nThe scheduling algorithm used was Round Robin with a quantum of 2.\n");
+
+        // Print results and summary
+        double CPUUtilTime = 0;
+        double IOUtilTime = 0;
+        int totTurnaroundTime = 0;
+        int totWaitTime = 0;
+
+        int processNum = 0;
+        for (Process p: processes) {
+            System.out.println("Process " + processNum + ":");
+            System.out.println("        (A, B, C, IO) = (" + p.A + ", " + p.B + ", " + p.C + ", " + p.IO + ")");
+            System.out.println("        Finishing time: " + p.finishTime);
+            System.out.println("        Turnaround time: " + (p.finishTime - p.A));
+            System.out.println("        I/O time: " + p.IOTime);
+            System.out.println("        Waiting time: " + p.waitTime);
+            System.out.println();
+
+            CPUUtilTime += (p.finishTime - p.A - p.IOTime - p.waitTime);
+            IOUtilTime += (p.IOTime);
+            totTurnaroundTime += (p.finishTime - p.A);
+            totWaitTime += p.waitTime;
+
+            processNum++;
+        }
+
+        CPUUtilTime /= (currentCycle - 1);
+        IOUtilTime /= (currentCycle - 1);
+
+        double avgTurnaroundTime = (totTurnaroundTime + 0.0)/processes.length;
+        double avgWaitTime = (totWaitTime + 0.0)/processes.length;
+
+        System.out.println("Summary data:");
+        System.out.println("        Finishing time: " + (currentCycle - 1));
+        System.out.printf("        CPU utilization: %1.3f\n", CPUUtilTime);
+        System.out.printf("        IO utilization: %1.3f\n", IOUtilTime);
+        System.out.printf("        Throughput: %1.3f processes per hundred cycles.\n", ((processes.length/(currentCycle - 1.0)) * 100));
+        System.out.printf("        Average turnaround time: %1.3f\n", avgTurnaroundTime);
+        System.out.printf("        Average waiting time: %1.3f\n\n", avgWaitTime);
+    }
+
+    // Method to implement Uniprogrammed scheduling algorithm
+    public static void Uniprogrammed() {
+        // Reset randIdx
+        Scheduler.randIdx = -1;
+
+        // Instantiate processes
+        Process[] processes = instantiateProcesses();
+
+        // Implement Uniprogrammed scheduling algorithm
+        if (Scheduler.verbose)
+            System.out.println("\n" + "This detailed printout gives the state and remaining burst for each process." + "\n");
+
+        int currentProcessIdx = 0;
+        Process currentProcess = processes[currentProcessIdx];
+
+        int currentCycle = 0;
+        while (!processes[processes.length - 1].terminated) {
+            // Print detailed output, if verbose
+            if (Scheduler.verbose) {
+                System.out.print("Before cycle    " + currentCycle + ": ");
+
+                for (Process p: processes) {
+                    System.out.printf(" %10s ", p.currentState);
+                    if (p.currentState.equals("running"))
+                        System.out.print(p.remCPUBurst);
+                    else if (p.currentState.equals("blocked"))
+                        System.out.print(p.remIOBurst);
+                    else
+                        System.out.print(0);
+                }
+
+                System.out.println();
+            }
+
+            for (Process p: processes) {
+                // Check on current process, if running
+                if (p.currentState.equals("running")) {
+                    p.remCPUBurst--;
+                    p.remCPUTime--;
+
+                    if (p.remCPUBurst == 0) {
+                        if (p.remCPUTime == 0) {
+                            p.currentState = "terminated";
+                            p.terminated = true;
+
+                            p.finishTime = currentCycle;
+
+                            if (currentProcessIdx != (processes.length - 1)) {
+                                currentProcessIdx += 1;
+                                currentProcess = processes[currentProcessIdx];
+                            }
+                        }
+                        else {
+                            p.currentState = "blocked";
+                            p.remIOBurst = randomOS(p.IO, "IO") + 1;
+                            p.IOTime--;
+                        }
+                    }
+                }
+
+                // Check on current process, if blocked
+                else if (p.currentState.equals("blocked")) {
+                    p.remIOBurst--;
+                    p.IOTime++;
+
+                    if (p.remIOBurst == 0) {
+                        p.currentState = "ready";
+                        p.readyBurst = -1;
+                        p.waitTime--;
+                    }
+                }
+
+                // Check on process, if unstarted
+                else if (p.currentState.equals("unstarted") && currentProcess.A == currentCycle) {
+                    p.currentState = "ready";
+                    p.readyBurst = -1;
+                    p.waitTime = -1;
+                }
+
+                // Check on process, if ready
+                else if (p.currentState.equals("ready")) {
+                    p.readyBurst++;
+                    p.waitTime++;
+
+                    if (p == currentProcess) {
+                        p.readyBurst = 0;
+
+                        p.currentState = "running";
+    
+                        int randomBurst = randomOS(p.B, "CPU");
+                        if (randomBurst > p.remCPUTime)
+                            randomBurst = p.remCPUTime;
+    
+                        p.remCPUBurst = randomBurst;
+                    }
+                }
+            }
+
+            currentCycle++;
+        }
+
+        System.out.println("\nThe scheduling algorithm used was Uniprogrammed.\n");
+
+        // Print results and summary
+        double CPUUtilTime = 0;
+        double IOUtilTime = 0;
+        int totTurnaroundTime = 0;
+        int totWaitTime = 0;
+
+        int processNum = 0;
+        for (Process p: processes) {
+            System.out.println("Process " + processNum + ":");
+            System.out.println("        (A, B, C, IO) = (" + p.A + ", " + p.B + ", " + p.C + ", " + p.IO + ")");
+            System.out.println("        Finishing time: " + p.finishTime);
+            System.out.println("        Turnaround time: " + (p.finishTime - p.A));
+            System.out.println("        I/O time: " + p.IOTime);
+            System.out.println("        Waiting time: " + p.waitTime);
+            System.out.println();
+
+            CPUUtilTime += (p.finishTime - p.A - p.IOTime - p.waitTime);
+            IOUtilTime += (p.IOTime);
+            totTurnaroundTime += (p.finishTime - p.A);
+            totWaitTime += p.waitTime;
+
+            processNum++;
+        }
+
+        CPUUtilTime /= (currentCycle - 1);
+        IOUtilTime /= (currentCycle - 1);
+
+        double avgTurnaroundTime = (totTurnaroundTime + 0.0)/processes.length;
+        double avgWaitTime = (totWaitTime + 0.0)/processes.length;
+
+        System.out.println("Summary data:");
+        System.out.println("        Finishing time: " + (currentCycle - 1));
+        System.out.printf("        CPU utilization: %1.3f\n", CPUUtilTime);
+        System.out.printf("        IO utilization: %1.3f\n", IOUtilTime);
+        System.out.printf("        Throughput: %1.3f processes per hundred cycles.\n", ((processes.length/(currentCycle - 1.0)) * 100));
+        System.out.printf("        Average turnaround time: %1.3f\n", avgTurnaroundTime);
+        System.out.printf("        Average waiting time: %1.3f\n\n", avgWaitTime);
+    }
+
+    // Method to read and print the input file and instantiate and sort processes
     public static Process[] instantiateProcesses() {
         try {
             Scanner fileIn = new Scanner(new File(inputFileName));
 
             int totProcesses = fileIn.nextInt();
-            Process[] processes = new int[totProcesses];
+            System.out.print("The original input was: " + totProcesses);
 
+            int latestArrivalTime = -1; 
+
+            Process[] processes = new Process[totProcesses];
             for (int i = 0; i < totProcesses; i++) {
                 int A = fileIn.nextInt();
+                if (A > latestArrivalTime)
+                    latestArrivalTime = A;
+
                 int B = fileIn.nextInt();
                 int C = fileIn.nextInt();
                 int IO = fileIn.nextInt();
 
                 processes[i] = new Process(A, B, C, IO);
-            }
 
-            return processes;
+                System.out.print("  " + A + " " + B + " " + C + " " + IO);
+            }
+            System.out.println();
+
+            fileIn.close();
+
+            // Sort processes
+            System.out.print("The (sorted) input is: " + totProcesses);
+
+            int idx = 0;
+            Process[] sortedProcesses = new Process[processes.length];
+            for (int i = 0; i <= latestArrivalTime; i++) {
+                for (Process p: processes) {
+                    if (p.A == i) {
+                        sortedProcesses[idx] = p;
+                        idx++;
+
+                        System.out.print("  " + p.A + " " + p.B + " " + p.C + " " + p.IO);
+                    }
+                }
+            }
+            System.out.println();
+
+            return sortedProcesses;
         }
         catch (FileNotFoundException e) {
             System.out.println("Input file not found.");
             System.exit(1);
         }
+
+        return null;
     }
 
     // Method to select uniformly distributed random integers
-    public static int randomOS(int U) {
-        int idx = Scheduler.random.nextInt(Scheduler.randNums.size() - 1);
+    public static int randomOS(int U, String mode) {
+        Scheduler.randIdx++;
 
-        return (1 + (Scheduler.randNums.get(idx) % U));
+        int randInt = 1 + (Scheduler.randNums.get(Scheduler.randIdx) % U);
+
+        if (mode.equals("IO"))
+            System.out.println("Find I/O burst when blocking a process: " + Scheduler.randNums.get(Scheduler.randIdx));
+        else
+            System.out.println("Find burst when choosing ready process to run: " + Scheduler.randNums.get(Scheduler.randIdx));
+
+        return (randInt);
     }
 }
 
@@ -109,10 +615,17 @@ class Process {
     int A, B, C, IO;
 
     String currentState = "unstarted";
-    boolean terminated = False;
+    boolean terminated = false;
 
-    ArrayList<String> stateLog = new ArrayList<>();
-    ArrayList<Integer> burstLog = new ArrayList<>();
+    int readyBurst = 0;
+
+    int remCPUTime; 
+    int remCPUBurst = 0;
+    int remIOBurst = 0;
+
+    int IOTime = 0;
+    int waitTime = 0;
+    int finishTime = 0;
     
     // Constructor
     public Process(int A, int B, int C, int IO) {
@@ -121,7 +634,6 @@ class Process {
         this.C = C;
         this.IO = IO;
 
-        self.stateLog.add(self.currentState);
-        self.burstLog.add(0);
+        this.remCPUTime = this.C;
     }
 }
