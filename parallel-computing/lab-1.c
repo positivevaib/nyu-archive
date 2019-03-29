@@ -24,7 +24,7 @@ int main(int argc, char * argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	if(argc != 2) {
+	if (argc != 2) {
 		printf("Usage: mpirun -n x exec_name filename\n");
 		exit(1);
 	}
@@ -87,7 +87,7 @@ int main(int argc, char * argv[]) {
 
 			// Gather updated x vals.
    			MPI_Allgather(local_updated_x, local_nb_x, MPI_FLOAT, x, local_nb_x, MPI_FLOAT, MPI_COMM_WORLD); 
-   
+
 			// Check and broadcast prog. termination condition
    			terminate = true;
    			for (i = 0; i < nb_x; i++) {
@@ -105,12 +105,12 @@ int main(int argc, char * argv[]) {
 		sprintf(out_filename, "%d.sol", nb_x);
 
 		FILE * out_file = fopen(out_filename, "w");
-		if(!out_file) {
+		if (!out_file) {
 			printf("Cannot create the file '%s'.\n", out_filename);
 			exit(1);
 		}
 		
-		for( i = 0; i < nb_x; i++)
+		for ( i = 0; i < nb_x; i++)
 			fprintf(out_file, "%f\n", x[i]);
 	
 		// Close output file
@@ -150,14 +150,14 @@ int main(int argc, char * argv[]) {
 
   		while (!terminate) {
 			// Calculate x vals.
-   			for (i = offset; i < (offset + local_nb_x); i++) {
+   			for (i = 0; i < local_nb_x; i++) {
     			sum = 0;
     			for (j = 0; j < nb_x; j++) {
-     				if (j != i)
-      					sum += local_a[(i % offset) + j] * x[j];
+     				if (j != (offset + i))
+      					sum += local_a[(i * nb_x) + j] * x[j];
     			}
 
-    			local_updated_x[(i % offset)] = (local_b[(i % offset)] - sum) / local_a[(i % offset) + i];
+    			local_updated_x[i] = (local_b[i] - sum) / local_a[(i * nb_x) + offset + i];
    			}
 
 			// Gather updated x vals.
@@ -193,7 +193,7 @@ void input(char filename[]) {
 	fscanf(in_file, "%f", &target_err);
 
 	x = (float *)malloc(nb_x * sizeof(float));
-	if(!x) {
+	if (!x) {
 		printf("Cannot allocate array 'x'.\n");
 		exit(1);
 	}
@@ -203,19 +203,19 @@ void input(char filename[]) {
 
 	// a and b
 	a = (float *)malloc((nb_x * nb_x) * sizeof(float));
-	if(!a) {
+	if (!a) {
 		printf("Cannot allocate array 'a'.\n");
 		exit(1);
 	}
 
  	b = (float *)malloc(nb_x * sizeof(float));
-	if(!b) {
+	if (!b) {
 		printf("Cannot allocate array 'b'.\n");
 		exit(1);
 	}
 
-	for(i = 0; i < nb_x; i++) {
-		for(j = 0; j < nb_x; j++)
+	for (i = 0; i < nb_x; i++) {
+		for (j = 0; j < nb_x; j++)
 			fscanf(in_file, "%f", &a[(i * nb_x) + j]);
    
    		fscanf(in_file, "%f", &b[i]);
