@@ -211,7 +211,7 @@ public class Banker {
 
         // Check initial claim errors
         for (Task task: Banker.tasks)
-            checkErrors(task, "claim");
+            checkErrors(task, "claim", 0);
 
         // Declare and initialize current cycle
         int currentCycle = 0;
@@ -256,7 +256,7 @@ public class Banker {
                     if (task.activities.get(task.currentActivity).equals("request") 
                     && task.cycles.get(task.currentActivity) <= currentCycle) {
                         // Check greater than claim request error
-                        if (checkErrors(task, "request"))
+                        if (checkErrors(task, "request", currentCycle))
                             continue;
 
                         // If task computing, change its state and remove from computingTasks array 
@@ -334,7 +334,7 @@ public class Banker {
 
     
     // Define method to check for errors in resource claims and requests
-    public static boolean checkErrors(Task task, String mode) {
+    public static boolean checkErrors(Task task, String mode, int currentCycle) {
         // Check for initial claim error
         if (mode.equals("claim")) {
             for (int i = 0; i < task.activities.size(); i++)
@@ -353,7 +353,7 @@ public class Banker {
             if ((task.activityInfo.get(task.currentActivity) + task.resourcesHeld[task.resourceTypes.get(task.currentActivity) - 1]) 
             > task.claims[task.resourceTypes.get(task.currentActivity) - 1]) {
                 kill(task, "abort");
-                System.out.println("Task " + (task.name + 1) + "'s request exceeded the initial claim. Task aborted.");
+                System.out.println("Task " + (task.name + 1) + "'s request exceeded the initial claim in cycle " + currentCycle + ". Task aborted.");
 
                 return true;
             }
