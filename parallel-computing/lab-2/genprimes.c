@@ -1,17 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <math.h>
 #include <omp.h>
-
-// Global vars.
-int range, nb_threads;
-
-int * primes;
 
 // Main func.
 int main(int argc, char * argv[]) {
-    // Local vars.
+    // Declare (and initialize) vars.
+    int range, nb_threads;
+
     int i, j;
 
     double start_time, time_taken;
@@ -44,21 +40,29 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 
+    // Declare array
+    int primes[range - 1];
+
+    // Set break_iter
+    int break_iter = ((range + 1) / 2) - 2;
+
     // Generate primes
     start_time = omp_get_wtime();
 
     // Step 1: Generate all nbs. from 2 to the max (as specified by range).
-    primes = (int *)malloc((range - 1) * sizeof(int));
+    #pragma omp parallel num_threads(nb_threads)
+    {
+    #pragma omp for
     for (i = 0; i < (range - 1); i++)
         primes[i] = i + 2;
 
     // Step 2: Remove composite nbs.
-    for (i = 0; i < (floor((range + 1) / 2) - 2); i++)
-        if (primes[i] != 0) {
-            #pragma omp parallel for num_threads(nb_threads)
-            for (j = ((2*(i + 2)) - 2); j < (range - 1); j += (i + 2))
+    #pragma omp for
+    for (i = 0; i < break_iter; i++)
+        if (primes[i] != 0)
+            for (j = (2 * (i + 1)); j < (range - 1); j += (i + 2))
                 primes[j] = 0;
-        }
+    }
 
     time_taken = omp_get_wtime() - start_time;
     printf("Time taken for the main part: %f\n", time_taken);
