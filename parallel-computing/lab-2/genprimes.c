@@ -5,71 +5,60 @@
 
 // Main func.
 int main(int argc, char * argv[]) {
+    // Check arguments
+    if (argc != 3) {
+        printf("Incorrect number of arguments passed. 3 needed. %d passed.\n", argc);
+        exit(1);
+    }
+
     // Declare (and initialize) vars.
-    int range, nb_threads;
+    // Initialize upper bound for prime number search space and total threads requested
+    int range = atoi(argv[1]);
+    int nb_threads = atoi(argv[2]);
 
-    int i, j;
+    // Declare array for prime number search space
+    int primes[range - 1];
 
+    // Declare vars. for time tracking
     double start_time, time_taken;
 
+    // Initialize vars. for output generation
     int rank = 1;
     int prev_prime = 2;
     char out_filename[100] = "";
 
-    // Read input
-    if (argc != 3) {
-        if (argc > 3) {
-            printf("Cannot accept more than 2 arguments. %d  passed.\n", argc);
-            exit(1);
-        }
-        else {
-            printf("Need 2 command line arguments. %d passed.\n", argc);
-            exit(1);
-        }
-    }
-
-    range = atoi(argv[1]);
-    if (range <= 2 || range > 100000) {
-        printf("Cannot generate primes with a max range of %d. Range needs to be between 2 and 100,000.\n", range);
-        exit(1);
-    }
-
-    nb_threads = atoi(argv[2]);
-    if (nb_threads < 1 || nb_threads > 100) {
-        printf("Cannot run with %d threads. Number of threads needs to be between 1 and 100.\n", nb_threads);
-        exit(1);
-    }
-
-    // Declare array
-    int primes[range - 1];
-
     // Set break_iter
-    int break_iter = ((range + 1) / 2) - 2;
+    //int break_iter = (range + 1) / 2;
 
     // Generate primes
+    // Initialize start time var.
     start_time = omp_get_wtime();
 
-    // Step 1: Generate all nbs. from 2 to the max (as specified by range).
+    // Step 1: Generate all nbs. in search space (as specified by range).
     #pragma omp parallel num_threads(nb_threads)
     {
     #pragma omp for
-    for (i = 0; i < (range - 1); i++)
-        primes[i] = i + 2;
+    for (int i = 2; i <= range; i++)
+        primes[i - 2] = i;
 
     // Step 2: Remove composite nbs.
     #pragma omp for
-    for (i = 0; i < break_iter; i++)
-        if (primes[i] != 0)
-            for (j = (2 * (i + 1)); j < (range - 1); j += (i + 2))
-                primes[j] = 0;
+    for (int j = 2; j <= ((range + 1) / 2); j++)
+        if (primes[j - 2] != 0)
+            for (int k = (j - 1); k < (range - 1); k++)
+                if ((primes[k] % j) == 0)
+                    primes[k] = 0;
     }
 
+    // Compute and print time taken for prime number generation
     time_taken = omp_get_wtime() - start_time;
     printf("Time taken for the main part: %f\n", time_taken);
 
     // Generate output file
+    // Create output file name
     sprintf(out_filename, "%d.txt", range);
 
+    // Create FILE object
     FILE * out_file = fopen(out_filename, "w");
     
     if (!out_file) {
@@ -77,12 +66,14 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 
-    for (i = 0; i < (range - 1); i++) {
+    // Write output to FILE object
+    for (int i = 0; i < (range - 1); i++) {
         if (primes[i] != 0) {
             fprintf(out_file, "%d, %d, %d\n", rank++, primes[i], (primes[i] - prev_prime));
             prev_prime = primes[i];
         }
     }
 
+    // Close FILE object
 	fclose(out_file);
 }
