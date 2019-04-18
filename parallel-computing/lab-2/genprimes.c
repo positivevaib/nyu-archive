@@ -27,16 +27,13 @@ int main(int argc, char * argv[]) {
     int prev_prime = 2;
     char out_filename[100] = "";
 
-    // Set break_iter
-    //int break_iter = (range + 1) / 2;
-
     // Generate primes
     // Initialize start time var.
     start_time = omp_get_wtime();
 
-    // Step 1: Generate all nbs. in search space (as specified by range).
     #pragma omp parallel num_threads(nb_threads)
     {
+    // Step 1: Generate all nbs. in search space (as specified by range).
     #pragma omp for
     for (int i = 2; i <= range; i++)
         primes[i - 2] = i;
