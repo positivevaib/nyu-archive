@@ -4,17 +4,21 @@ import java.util.*;
 // Define main program class
 public class Paging {
     // Declare (and initialize/instantiate) class variables
+    // Command line arguments
     static int M, P, S, J, N;
     static String R; 
 
+    // Round-robin scheduling quantum and random numbers array
     static int quantum = 3;
     static ArrayList<Integer> randNums = new ArrayList<>();
 
+    // Processes array
     static Process[] processes;
 
+    // Frame table and frame queues for fifo and lru
     static ArrayList<Frame> frames = new ArrayList<>();
     static ArrayList<Frame> framesAddQueue = new ArrayList<>();
-    static ArrayList<Frame> framesUseStack = new ArrayList<>();
+    static ArrayList<Frame> framesUseQueue = new ArrayList<>();
 
     // Define main method
     public static void main(String[] args) {
@@ -42,7 +46,7 @@ public class Paging {
             fileIn.close();
         }
         catch(FileNotFoundException e) {
-            System.out.println("'random-number.txt' file not found.");
+            System.out.println("'random-numbers.txt' file not found.");
             System.exit(1);
         }
 
@@ -50,7 +54,7 @@ public class Paging {
         for (int i = 0; i < (Paging.M/Paging.P); i++)
             Paging.frames.add(null);
 
-        // Instantiate processes
+        // Instantiate processes according to job mix
         switch (Paging.J) {
             case 1: Paging.processes = new Process[1];
                     Paging.processes[0] = new Process(1.000, 0.000, 0.000, 1, Paging.S);
@@ -71,61 +75,99 @@ public class Paging {
         }
 
         // Simulate paging
+        // Check termination condition 
         int referencesProcessed = 0;
         for (Process p: Paging.processes)
             referencesProcessed += p.referencesProcessed;
 
+        // Loop over processes, if termination condition not met
         int time = 0;
         while (referencesProcessed != (Paging.N * Paging.processes.length)) {
             for (Process p: Paging.processes) {
-                if (p.referencesProcessed != Paging.N) {
-                    for (int q = 0; q < Paging.quantum; q++) {
+                // Loop over quantums
+                for (int q = 0; q < Paging.quantum; q++) {
+                    // Deal with process demands, if all references haven't been dealt with
+                    if (p.referencesProcessed < Paging.N) {
                         time++;
 
                         // Process reference
+                        // Compute demanded page number
                         int page = p.lastReference/Paging.P;
+
+                        // Check if demanded page is in frame table
                         int frameIdx = -1;
                         for (int i = 0; i < Paging.frames.size(); i++)
-                            if (Paging.frames.get(i).process == p && Paging.frames.get(i).page == page) {
-                                frameIdx = i;
-                                break;
+                            if (Paging.frames.get(i) != null)
+                                if (Paging.frames.get(i).process == p && Paging.frames.get(i).page == page) {
+                                    frameIdx = i;
+                                    break;
+                                }
+
+                        // Update page use, if page hit and replacement algorithm is lru
+                        if (frameIdx != -1) {
+                            if (Paging.R.equals("lru")) {
+                                Frame frameUsed = Paging.frames.get(frameIdx);
+                                Paging.framesUseQueue.remove(frameUsed);
+                                Paging.framesUseQueue.add(frameUsed);
                             }
-                        
-                        if (frameIdx != -1)
-                            break;
-                        else {
+                        }
+                        // Process page fault
+                        if (frameIdx == -1) {
                             p.pageFaults++;
 
+                            // Instantiate Frame object to process page demand
                             Frame frame = new Frame(p, page, time);
-                            if (Paging.frames.contains(null)) {
-                                Paging.frames.add(Paging.frames.indexOf(null), frame);
-                                Paging.framesAddQueue.add(frame);
-                            }
-                            else if (Paging.R.equals("fifo")) {
-                                Paging.framesAddQueue.get(0).process.avgResidencyTime += time - Paging.framesAddQueue.get(0).loadTime;
 
+                            // Add frame to empty slot in frame table and update page tracking for fifo or lru
+                            if (Paging.frames.contains(null)) {
+                                Paging.frames.set(Paging.frames.lastIndexOf(null), frame);
+
+                                if (Paging.R.equals("fifo"))
+                                    Paging.framesAddQueue.add(frame);
+                                else if (Paging.R.equals("lru"))
+                                    Paging.framesUseQueue.add(frame);
+                            }
+                            // Evict oldest loaded frame and add new frame
+                            else if (Paging.R.equals("fifo")) {
+                                // Update process residency time and evictions
+                                Paging.framesAddQueue.get(0).process.avgResidencyTime += time - Paging.framesAddQueue.get(0).loadTime;
+                                Paging.framesAddQueue.get(0).process.evictions++;
+
+                                // Add frame to table in place of the selected victim frame and update frame queue to track oldest loaded frame
                                 Paging.frames.set(Paging.frames.indexOf(Paging.framesAddQueue.get(0)), frame);
                                 Paging.framesAddQueue.remove(0);
+                                Paging.framesAddQueue.add(frame);
                             }
+                            // Evict randomly selected frame and add new frame
                             else if (Paging.R.equals("random")) {
                                 int randNum = Paging.randNums.get(0);
                                 Paging.randNums.remove(0);
 
+                                // Choose random frame to evict and update process residency time and evictions
                                 int idx = randNum % Paging.frames.size();
                                 Paging.frames.get(idx).process.avgResidencyTime += time - Paging.frames.get(idx).loadTime;
+                                Paging.frames.get(idx).process.evictions++;
 
+                                // Add frame to table in place of the selected victim frame
                                 Paging.frames.set(idx, frame);
                             }
+                            // Evict least recently used frame and add new frame
                             else {
-                                int lastIdx = Paging.framesUseStack.size() - 1;
-                                Paging.framesUseStack.get(lastIdx).process.avgResidencyTime += time - Paging.framesUseStack.get(lastIdx).loadTime;
+                                // Update process residency time and evictions
+                                Paging.framesUseQueue.get(0).process.avgResidencyTime += time - Paging.framesUseQueue.get(0).loadTime;
+                                Paging.framesUseQueue.get(0).process.evictions++;
 
-                                Paging.frames.set(Paging.frames.indexOf(Paging.framesUseStack.get(lastIdx)), frame);
-                                Paging.framesUseStack.remove(lastIdx);
+                                // Add frame to table in place of the selected victim frame and update use queue to track leaset recently used frame
+                                Paging.frames.set(Paging.frames.indexOf(Paging.framesUseQueue.get(0)), frame);
+                                Paging.framesUseQueue.remove(0);
+                                Paging.framesUseQueue.add(frame);
                             }
                         }
 
-                        // Generate reference
+                        // Update process statistics
+                        p.referencesProcessed++;
+
+                        // Generate next reference according to process probabilities and update process reference
                         int randNum = Paging.randNums.get(0);
                         Paging.randNums.remove(0);
 
@@ -143,6 +185,11 @@ public class Paging {
                     }
                 }
             }
+
+            // Check termination condition
+            referencesProcessed = 0;
+            for (Process p: Paging.processes)
+                referencesProcessed += p.referencesProcessed;
         }
 
         // Print output
@@ -161,29 +208,57 @@ public class Paging {
 
         // Print statistics
         int totFaults = 0;
+
+        int totEvictions = 0;
         double totAvgResidencyTime = 0;
 
+        // Loop over processes to print process specific statistics
         for (int i = 0; i < Paging.processes.length; i++) {
             totFaults += Paging.processes[i].pageFaults;
+
+            totEvictions += Paging.processes[i].evictions;
             totAvgResidencyTime += Paging.processes[i].avgResidencyTime;
 
-            double avgResidencyTime = Paging.processes[i].avgResidencyTime/Paging.processes[i].pageFaults; 
-            System.out.println("Process " + i + " had " + Paging.processes[i].pageFaults + " and " + avgResidencyTime + " average residency.");
+            // Print process statistics, if no evictions
+            if (Paging.processes[i].evictions == 0) {
+                System.out.println("Process " + (i + 1) + " had " + Paging.processes[i].pageFaults + " faults.");
+                System.out.println("    With no evictions, the average residence is undefined.");
+            }
+            // Print process statistics with average residency time
+            else {
+                double avgResidencyTime = (double)Paging.processes[i].avgResidencyTime / Paging.processes[i].evictions; 
+                System.out.println("Process " + (i + 1) + " had " + Paging.processes[i].pageFaults + " faults and " + avgResidencyTime + " average residency.");
+            }
         }
 
-        System.out.println("\nThe total number of faults is " + totFaults + " and the overall average residency is " + totAvgResidencyTime + ".");
+        // Print overall statistics, if no evictions
+        if (totEvictions == 0) {
+            System.out.println("\nThe total number of faults is " + totFaults + ".");
+            System.out.println("    With no evictions, the overall average residence is undefined.");
+        }
+        // Print overall statistics with overall average residency time
+        else {
+            totAvgResidencyTime /= totEvictions;
+            System.out.println("\nThe total number of faults is " + totFaults + " and the overall average residency is " + totAvgResidencyTime + ".");
+        }
     }
 }
 
 // Define process class
 class Process {
     // Declare (and initialize) instance variables
+    // Probabilities
     double A, B, C;
 
+    // Reference to be processed and total references processed already
     int lastReference;
     int referencesProcessed = 0;
 
+    // Total page faults
     int pageFaults = 0;
+
+    // Total page evictions and running sum to track residency time
+    int evictions = 0;
     int avgResidencyTime = 0;
 
     // Define constructor
@@ -192,6 +267,7 @@ class Process {
         this.B = B;
         this.C = C;
 
+        // Initial reference to be processed
         this.lastReference = (111 * idx) % S;
     }
 }
@@ -199,9 +275,11 @@ class Process {
 // Define frame class
 class Frame {
     // Declare instance variables
+    // Calling process and page id
     Process process;
     int page;
 
+    // Timestamp to track start of residency
     int loadTime;
 
     // Define constructor
