@@ -7,7 +7,7 @@ The source code is in the Paging.java file.
 
 Class descriptions:
 
-- Paging class is the main class and contains the demand paging simulators along with the print subroutine.
+- Paging class is the main class and contains the demand paging simulator along with the print subroutine.
 
 - Process class is used to store and track the state and information about the running processes.
 
@@ -25,5 +25,5 @@ Running the program:
   5 - N: References per process
   6 - R: Replacement algorithm - fifo, random, or lru
 
-	javac Banker.java
-	java Banker M P S J N R
+	javac Paging.java
+	java Paging M P S J N R
