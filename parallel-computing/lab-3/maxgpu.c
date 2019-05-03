@@ -1,125 +1,96 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <time.h>
 #include <cuda.h>
-#include <math.h>
 
-#define CHUNK 1000
-#define THREADS 1024
+unsigned int getmax(unsigned int *, unsigned int);
 
-// Declare functions
-unsigned int find_max(unsigned int *, unsigned int);
-__global__ void kernel(unsigned int *, unsigned int);
-
-/**************************************************************/
-unsigned int maxseq(unsigned int num[], unsigned int size)
+int main(int argc, char *argv[])
 {
-  unsigned int i;
-  unsigned int max = num[0];
-
-  for(i = 1; i < size; i++)
-	if(num[i] > max)
-	   max = num[i];
-
-  return( max );
-}
-/**************************************************************/
- 
-// Define main function
-int main(int argc, char ** argv) {
-    // Declare (and initialize) variables
-    // Declare original array and its length
-    unsigned int * array;
-    unsigned int len;
-
-    // Declare sub-array and temporary storage variable and initialize max to hold per block maxes
-    unsigned int sub_array[CHUNK];
-    unsigned int temp;
-    unsigned int max = 0;
-
-    // Declare for loop iterator
-    unsigned int i, j;
+    unsigned int size = 0;  // The size of the array
+    unsigned int i;  // loop index
+    unsigned int * numbers; //pointer to the array
     
-    // Validate command line arguments
-    if(argc !=2) {
-       printf("Incorrect number of arguments passed.\n\nUsage: a.out num\nnum = array length");
-       exit(1);
+    if(argc !=2)
+    {
+        printf("usage: maxgpu num\n");
+        printf("num = size of the array\n");
+        exit(1);
     }
    
-    // Get input through command line arguments and initiate array
-    len = atol(argv[1]);
-    array = (unsigned int *)malloc(len * sizeof(unsigned int));
-    if(!array) {
-       printf("Unable to allocate array of size %u.\n", len);
-       exit(1);
+    size = atol(argv[1]);
+
+    numbers = (unsigned int *)malloc(size * sizeof(unsigned int));
+    if( !numbers )
+    {
+        printf("Unable to allocate mem for an array of size %u\n", size);
+        exit(1);
     }    
 
-    // Set random seed and fill array
-    srand(time(NULL));
-    for(i = 0; i < len; i++)
-       array[i] = rand() % len;
+    srand(time(NULL)); // setting a seed for the random number generator
+    // Fill-up the array with random numbers from 0 to size-1 
+    for( i = 0; i < size; i++)
+        numbers[i] = rand()  % size;    
+   
+    printf(" The maximum number in the array is: %u\n", getmax(numbers, size));
 
-    // Print array max using sequential algorithm 
-    printf("The maximum seq number in the array is: %u\n", maxseq(array, len));
-
-    // Find and print the max by processing sub-arrays over multiple kernel invocations
-    for(i = 0; i < len; i += CHUNK) {
-        // Fill sub-array
-        for (j = 0; j < CHUNK; j++)
-            sub_array[j] = array[i + j];
-
-        // Process sub-array to find max and update best max
-        temp = find_max(sub_array, CHUNK);
-        if (temp > max)
-            max = temp; 
-    }
-
-    printf("The maximum number in the array is: %u\n", max);
-
-    // Free allocated memory
-    free(array);
-
+    free(numbers);
     exit(0);
 }
 
-// Define function to invoke kernel and get max
-unsigned int find_max(unsigned int * array, unsigned int len) {
-    // Allocate device memory and transfer data
-    unsigned int * array_dev;
-    cudaMalloc(&array_dev, (len * sizeof(unsigned int)));
-    cudaMemcpy(array_dev, array, (len * sizeof(unsigned int)), cudaMemcpyHostToDevice);
+// kernel
+__global__ void getmaxcu(unsigned int num[], unsigned int size, unsigned int offset) {
+    __shared__ unsigned int block_num[1000];
+    unsigned int t = threadIdx.x + (blockIdx.x * 1000);
+    unsigned int boundary;
 
-    // Setup blocks and threads and invoke kernel
-    int tot_blocks = ceil((double)len/(THREADS * 2));
-    kernel<<<tot_blocks, THREADS>>>(array_dev, len);
+    if (offset != 1)
+        offset = 1000;
 
-    // Transfer results to host memory
-    cudaMemcpy(array, array_dev, (len * sizeof(int)), cudaMemcpyDeviceToHost);
+    if (t < size) {
+        block_num[threadIdx.x] = num[t*offset];
 
-    // Free device memory
-    cudaFree(array_dev);
-
-    // Return max
-    return(array[0]);
-}
-
-__global__ void kernel(unsigned int * array_dev, unsigned int len) {
-    while (len > 1) {
-        // Use threads to compare at most two array elements and store the higher element in the lower indexed array slot
-        if ((threadIdx.x + (blockIdx.x * blockDim.x)) < (len/2))
-            if (array_dev[threadIdx.x + (blockIdx.x * blockDim.x)] < array_dev[threadIdx.x + (blockIdx.x * blockDim.x) + len/2])
-                array_dev[threadIdx.x + (blockIdx.x * blockDim.x)] = array_dev[threadIdx.x + (blockIdx.x * blockDim.x) + len/2];
+        boundary = 1000;
+        if (t > (size - 1 - (size % 1000)))
+            boundary = size % 1000;
         
         __syncthreads();
 
-        // Use thread 0 to compare and store the higher element among the first and the last in an odd sized array
-        if ((threadIdx.x + (blockIdx.x * blockDim.x)) == 0)
-            if (((len % 2) != 0) && (array_dev[0] < array_dev[len - 1]))
-                array_dev[0] = array_dev[len - 1];
+        while (boundary > 1) {
+            if ((threadIdx.x < boundary/2) && (block_num[threadIdx.x] < block_num[threadIdx.x + (boundary+1)/2]))
+                block_num[threadIdx.x] = block_num[threadIdx.x + (boundary+1)/2];
 
-        __syncthreads();
+            boundary = (boundary+1)/2;
 
-        // Half the array length of interest for further comparisons
-        len /= 2;
+            __syncthreads();
+        }
+
+        if (threadIdx.x == 0)
+            num[t] = block_num[0];
     }
+}
+
+/*
+   input: pointer to an array of long int
+          number of elements in the array
+   output: the maximum number of the array
+*/
+unsigned int getmax(unsigned int num[], unsigned int size)
+{
+    unsigned int i;
+
+    unsigned int * device_num;
+    cudaMalloc(&device_num, size * sizeof(unsigned int));
+    cudaMemcpy(device_num, num, size * sizeof(unsigned int), cudaMemcpyHostToDevice);
+
+    unsigned int threads_per_block = 1000;
+    unsigned int tot_blocks = ceil((double)size/(threads_per_block));
+    for (i = 0; i < ceil((double)log10(size)/log10(1000)); i++)
+        getmaxcu<<<tot_blocks, threads_per_block>>>(device_num, (int)size*(1000/pow(1000, (i+1))), i+1);
+
+    cudaMemcpy(num, device_num, size * sizeof(unsigned int), cudaMemcpyDeviceToHost);
+
+    cudaFree(device_num);
+
+    return num[0];
 }
