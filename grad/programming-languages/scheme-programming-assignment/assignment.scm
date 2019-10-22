@@ -34,16 +34,15 @@
 ; Part 4
 ; The logic is same as in parts 2 and 3, which are now nested in (sort L).
 
-(define sort
-    (lambda (L)
-      (letrec ((insert (lambda (x L)
-                         (cond ((null? L) (list x))          
-                               ((>= (car L) x) (cons x L))         
-                               (else (cons (car L) (insert x (cdr L)))))))
-               (insert-all (lambda (L M)           
-                             (cond ((null? L) M)                 
-                                   (else (insert-all (cdr L) (insert (car L) M)))))))
-        ((insert-all (cdr L) (list (car L)))))))
+(define (sort L)
+  (letrec ((insert (lambda (x L)
+                     (cond ((null? L) (list x))          
+                           ((>= (car L) x) (cons x L))         
+                           (else (cons (car L) (insert x (cdr L)))))))
+           (insert-all (lambda (L M)           
+                         (cond ((null? L) M)                 
+                               (else (insert-all (cdr L) (insert (car L) M)))))))
+    (insert-all (cdr L) (list (car L)))))
 
 ; Part 5
 
