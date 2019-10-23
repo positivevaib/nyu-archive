@@ -42,7 +42,7 @@
            (insert-all (lambda (L M)           
                          (cond ((null? L) M)                 
                                (else (insert-all (cdr L) (insert (car L) M)))))))
-    (insert-all (cdr L) (list (car L)))))
+    (if (null? L) '() (insert-all (cdr L) (list (car L))))))
 
 ; Part 5
 
