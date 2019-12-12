@@ -1,7 +1,15 @@
 class OInt(n: Int) extends Ordered[OInt] {
   var value = n
 
-  def compare(that: OInt) = (this.value - that.value) 
+  def compare(that: OInt) = {
+    var result = 0
+
+    var diff = this.value - that.value
+    if (diff != 0)
+      result = (this.value - that.value) / Math.abs(this.value - that.value)
+
+    result
+  }
   override def toString() = (s"$value")
 }
 
