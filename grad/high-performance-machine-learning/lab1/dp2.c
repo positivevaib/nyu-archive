@@ -4,7 +4,7 @@
 #include <string.h>
 #include <time.h>
 
-float dp(long, float *, float *);
+float dpunroll(long, float *, float *);
 
 int main(int argc, char * argv[])
 {
@@ -13,7 +13,7 @@ int main(int argc, char * argv[])
 
     if (argc != 3)
     {
-        printf("Usage: dp1 D R\n");
+        printf("Usage: dp2 D R\n");
         printf("D: Vector space dimension\n");
         printf("R: Number of repetitions for the measurement\n");
         exit(1);
@@ -35,7 +35,7 @@ int main(int argc, char * argv[])
     for (i = 0; i < numReps; i++)
     {
         clock_gettime(CLOCK_MONOTONIC, &start);
-        res = dp(vecDim, vecA, vecB);
+        res = dpunroll(vecDim, vecA, vecB);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         if (i >= numReps/2)
@@ -48,20 +48,20 @@ int main(int argc, char * argv[])
 
     avgExecTime /= (numReps/2);
 
-    float bandwidth = ((vecDim*(2*4))/avgExecTime)/pow(2, 30);
+    float bandwidth = (((vecDim/4)*(8*4))/avgExecTime)/pow(2, 30);
 
-    float flops = (vecDim*2)/avgExecTime;
+    float flops = ((vecDim/4)*8)/avgExecTime;
 
     printf("N: %d <T>: %-.6f sec. B: %-.3f GB/sec. F: %-.3f FLOPS\n", vecDim, avgExecTime, bandwidth, flops);
 }
 
-float dp(long vecDim, float * vecA, float * vecB)
+float dpunroll(long vecDim, float * vecA, float * vecB)
 {
     float res = 0.0;
 
     int i;
-    for (i = 0; i < vecDim; i++)
-        res += vecA[i]*vecB[i];
+    for (i = 0; i < vecDim; i += 4)
+        res += vecA[i]*vecB[i] + vecA[i + 1]*vecB[i + 1] + vecA[i + 2]*vecB[i + 2] + vecA[i + 3]*vecB[i + 3];
 
     return res;
 }

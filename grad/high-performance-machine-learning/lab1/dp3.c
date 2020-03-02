@@ -4,7 +4,9 @@
 #include <string.h>
 #include <time.h>
 
-float dp(long, float *, float *);
+#include <mkl_cblas.h>
+
+float bdp(long, float *, float *);
 
 int main(int argc, char * argv[])
 {
@@ -13,7 +15,7 @@ int main(int argc, char * argv[])
 
     if (argc != 3)
     {
-        printf("Usage: dp1 D R\n");
+        printf("Usage: dp3 D R\n");
         printf("D: Vector space dimension\n");
         printf("R: Number of repetitions for the measurement\n");
         exit(1);
@@ -35,7 +37,7 @@ int main(int argc, char * argv[])
     for (i = 0; i < numReps; i++)
     {
         clock_gettime(CLOCK_MONOTONIC, &start);
-        res = dp(vecDim, vecA, vecB);
+        res = bdp(vecDim, vecA, vecB);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         if (i >= numReps/2)
@@ -55,13 +57,8 @@ int main(int argc, char * argv[])
     printf("N: %d <T>: %-.6f sec. B: %-.3f GB/sec. F: %-.3f FLOPS\n", vecDim, avgExecTime, bandwidth, flops);
 }
 
-float dp(long vecDim, float * vecA, float * vecB)
+float bdp(long vecDim, float * vecA, float * vecB)
 {
-    float res = 0.0;
-
-    int i;
-    for (i = 0; i < vecDim; i++)
-        res += vecA[i]*vecB[i];
-
+    float res = cblas_sdot(vecDim, vecA, 1, vecB, 1);
     return res;
 }
