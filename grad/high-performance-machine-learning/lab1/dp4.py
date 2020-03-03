@@ -34,7 +34,7 @@ def main(args):
 
     flops = (args.vec_dim*2)/avg_exec_time
 
-    print('N: {} <T>: {:.6f} sec. B: {:.3f} GB/sec. F: {:.3f} FLOPS\n'.format(args.vec_dim, avg_exec_time, bandwidth, flops))
+    print('N: {} <T>: {:.6f} sec. B: {:.3f} GB/sec. F: {:.3f} FLOPS'.format(args.vec_dim, avg_exec_time, bandwidth, flops))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
