@@ -48,11 +48,11 @@ int main(int argc, char * argv[])
 
     avgExecTime /= (numReps/2);
 
-    float bandwidth = (((vecDim/4)*(8*4))/avgExecTime)/pow(2, 30);
+    float bandwidth = (((vecDim/4)*(8*4))/(avgExecTime/pow(10, 6)))/pow(2, 30);
 
-    float flops = ((vecDim/4)*8)/avgExecTime;
+    float flops = ((vecDim/4)*8)/(avgExecTime/pow(10, 6));
 
-    printf("N: %d <T>: %-.6f sec. B: %-.3f GB/sec. F: %-.3f FLOPS\n", vecDim, avgExecTime, bandwidth, flops);
+    printf("N: %d <T>: %-.6f usec. B: %-.3f GB/sec. F: %-.3f FLOPS\n", vecDim, avgExecTime, bandwidth, flops);
 }
 
 float dpunroll(long vecDim, float * vecA, float * vecB)
