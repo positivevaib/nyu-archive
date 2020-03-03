@@ -54,7 +54,7 @@ int main(int argc, char * argv[])
 
     float flops = (vecDim*2)/avgExecTime;
 
-    printf("N: %d <T>: %-.6f sec. B: %-.3f GB/sec. F: %-.3f FLOPS\n", vecDim, avgExecTime, bandwidth, flops);
+    printf("N: %d <T>: %-.6f sec. B: %f GB/sec. F: %-.3f FLOPS\n", vecDim, avgExecTime, bandwidth, flops);
 }
 
 float bdp(long vecDim, float * vecA, float * vecB)
