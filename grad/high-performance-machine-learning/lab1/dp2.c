@@ -4,64 +4,73 @@
 #include <string.h>
 #include <time.h>
 
+#define GIGA pow(2, 30) 
+#define NANO 1e9
+
 float dpunroll(long, float *, float *);
 
 int main(int argc, char * argv[])
 {
-    int i;
-    float res; 
+    // Declare and initialize vars.
+    long i;
+    float res = 0.;
 
+    // Parse command line args.
     if (argc != 3)
     {
-        printf("Usage: dp2 D R\n");
-        printf("D: Vector space dimension\n");
-        printf("R: Number of repetitions for the measurement\n");
+        printf("Usage: dp2 N M\n");
+        printf("N: Vector space dimension\n");
+        printf("M: Number of repetitions for the measurement\n");
         exit(1);
     }
 
-    long vecDim = atol(argv[1]);
-    int numReps = atoi(argv[2]);
+    long N = atol(argv[1]);
+    int M = atoi(argv[2]);
 
-    float vecA[vecDim], vecB[vecDim];
-    for (i = 0; i < vecDim; i++)
+    // Declare and initialize vecs.
+    float pA[N], pB[N];
+    for (i = 0; i < N; i++)
     {
-        vecA[i] = 1.0;
-        vecB[i] = 1.0;
+        pA[i] = 1.;
+        pB[i] = 1.;
     }
 
+    // Declare timespec structs and array to store exec. time measurements
     struct timespec start, end;
-    double execTimes[numReps/2];
+    double times[M];
 
-    for (i = 0; i < numReps; i++)
+    // Measure exec. times and store measurements in secs.
+    for (i = 0; i < M; i++)
     {
         clock_gettime(CLOCK_MONOTONIC, &start);
-        res = dpunroll(vecDim, vecA, vecB);
+        res = dpunroll(N, pA, pB);
         clock_gettime(CLOCK_MONOTONIC, &end);
 
-        if (i >= numReps/2)
-            execTimes[i - numReps/2] = ((double)end.tv_sec*1000000 + (double)end.tv_nsec/1000) - ((double)start.tv_sec*1000000 + (double)start.tv_nsec/1000);
+        times[i] = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec)/NANO);
     }
 
-    double avgExecTime = 0.0;
-    for (i = 0; i < numReps/2; i++)
-        avgExecTime += execTimes[i];
+    // Compute avgerage exec. time and use the value to compute bandwidth and FLOPS in GB/sec. and GFLOPS, respectively
+    double avgTime = 0.;
+    for (i = M/2; i < M; i++)
+        avgTime += times[i];
 
-    avgExecTime /= (numReps/2);
+    avgTime /= (M/2);
 
-    float bandwidth = (((vecDim/4)*(8*4))/(avgExecTime/pow(10, 6)))/pow(2, 30);
+    double bw = (((double) N)*(2.*((double) sizeof(float))))/(avgTime*GIGA);
 
-    float flops = ((vecDim/4)*8)/(avgExecTime/pow(10, 6));
+    double flops = ((double) (N*2L))/(avgTime*GIGA);
 
-    printf("N: %d <T>: %-.6f usec. B: %-.3f GB/sec. F: %-.3f FLOPS\n", vecDim, avgExecTime, bandwidth, flops);
+    // Print output
+    printf("N: %ld <T>: %f sec. B: %lf GB/sec. F: %lf GFLOPS result: %.3f\n", N, avgTime, bw, flops, res);
+
+    return 0;
 }
 
-float dpunroll(long vecDim, float * vecA, float * vecB)
-{
-    float res = 0.0;
-
-    int i;
-    for (i = 0; i < vecDim; i += 4)
-        res += vecA[i]*vecB[i] + vecA[i + 1]*vecB[i + 1] + vecA[i + 2]*vecB[i + 2] + vecA[i + 3]*vecB[i + 3];
-
-    return res;
+// Function to benchmark
+float dpunroll(long N, float *pA, float *pB) {
+  float R = 0.0;
+  int j;
+  for (j=0;j<N;j+=4)
+    R += pA[j]*pB[j] + pA[j+1]*pB[j+1] + pA[j+2]*pB[j+2] + pA[j+3] * pB[j+3];
+  return R;
 }
