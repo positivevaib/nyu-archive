@@ -1,45 +1,55 @@
+# import dependencies
 import argparse
 import time
 
 import numpy as np
 
-def dp(vec_dim, vec_A, vec_B):
-    res = 0.0
-    for i in range(vec_dim):
-        res += vec_A[i]*vec_B[i]
-
-    return res
+# func. to benchmark
+def dp(N,A,B):
+    R = 0.0;
+    for j in range(0,N):
+        R += A[j]*B[j]
+    return R
 
 def main(args):
-    vec_A = np.ones(args.vec_dim, dtype=np.float32)
-    vec_B = np.ones(args.vec_dim, dtype=np.float32)
+    # def. constants
+    FLOAT = 4
+    GIGA = 2**30
+    
+    # initialize result var.
+    res = 0.
 
+    # vecs. as np arrays 
+    A = np.ones(args.N,dtype=np.float32)
+    B = np.ones(args.N,dtype=np.float32)
+
+    # measure exec. times and store measurements in secs.
     exec_times = []
 
-    for rep in range(args.num_reps):
+    for _ in range(args.M):
         start = time.monotonic() 
-        res = dp(args.vec_dim, vec_A, vec_B)
+        res = dp(args.N, A, B)
         end = time.monotonic()
 
-        if rep >= args.num_reps/2:
-            exec_times.append(end-start)
+        exec_times.append(end-start)
 
-    avg_exec_time = 0
-    for time_ in exec_times:
-        avg_exec_time += time_
+    # compute average exec. time and and use the value to compute bandwidth and FLOPS in GB/sec. and GFLOPS, respectively
+    avg_time = 0.
+    for time_ in exec_times[int(args.M/2):]:
+        avg_time += time_
 
-    avg_exec_time /= (args.num_reps/2)
+    avg_time /= (args.M/2)
 
-    bandwidth = ((args.vec_dim*(2*4))/avg_exec_time)/(2**30)
+    bw = (args.N*(2*FLOAT))/(avg_time*GIGA)
 
-    flops = (args.vec_dim*2)/avg_exec_time
+    flops = (args.N*2)/(avg_time*GIGA)
 
-    print('N: {} <T>: {:.6f} sec. B: {:.3f} GB/sec. F: {:.3f} FLOPS'.format(args.vec_dim, avg_exec_time, bandwidth, flops))
+    print('N: {} <T>: {:.6f} sec. B: {:.6f} GB/sec. F: {:.6f} FLOPS result: {:.6f}'.format(args.N, avg_time, bw, flops, res))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('vec_dim', type=int, help='vector space dimension', metavar='DIM')
-    parser.add_argument('num_reps', type=int, help='number of repetitions for the measurement', metavar='REPS')
+    parser.add_argument('N', type=int, help='vector space dimension', metavar='DIM')
+    parser.add_argument('M', type=int, help='number of repetitions for the measurement', metavar='REPS')
 
     args = parser.parse_args()
     main(args)
