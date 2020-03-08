@@ -44,7 +44,7 @@ def main(args):
 
     flops = (args.N*2)/(avg_time*GIGA)
 
-    print('N: {} <T>: {:.6f} sec. B: {:.6f} GB/sec. F: {:.6f} FLOPS result: {:.6f}'.format(args.N, avg_time, bw, flops, res))
+    print('N: {} <T>: {:.6f} sec. B: {:.6f} GB/sec. F: {:.6f} GFLOPS result: {:.6f}'.format(args.N, avg_time, bw, flops, res))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
