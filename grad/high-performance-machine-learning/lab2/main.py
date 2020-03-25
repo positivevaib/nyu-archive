@@ -34,6 +34,7 @@ def main(args):
     # setup neural net, training loss function and optimization algorithm 
     device = torch.device(
         'cuda:0' if args.cuda and torch.cuda.is_available() else 'cpu')
+    print('device: {}'.format(device))
 
     net = resnet.ResNet18().to(device)
 
