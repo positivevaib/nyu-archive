@@ -39,7 +39,7 @@ def main(args):
 
     criterion = nn.CrossEntropyLoss()
 
-    optim_dict = {
+    optimizers_dict = {
         'SGD':
         optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=0.0005),
         'Nesterov':
@@ -55,10 +55,12 @@ def main(args):
         'Adam':
         optim.Adam(net.parameters(), lr=0.1, weight_decay=0.0005)
     }
-    optimizer = optim_dict[args.optim]
+    optimizer = optimizers_dict[args.optim]
 
     # train and output minibatch training loss, minibatch top-1 training accuracy and time measurements
-    print('training')
+    print('\ntraining')
+
+    total_data_load_time = 0.0
     for epoch in range(5):
         epoch_time_start = time.perf_counter()
         data_load_time = 0.0
@@ -93,7 +95,9 @@ def main(args):
             format(epoch, data_load_time, train_time,
                    epoch_time_end - epoch_time_start))
 
-    print('finished training')
+        total_data_load_time += data_load_time
+
+    print('\nfinished training')
 
 
 if __name__ == '__main__':
