@@ -31,7 +31,7 @@ def main(args):
                                               shuffle=True,
                                               num_workers=args.num_workers)
 
-    # setup neural net, training loss function and optimization algorithm 
+    # setup neural net, training loss function and optimization algorithm
     device = torch.device(
         'cuda:0' if args.cuda and torch.cuda.is_available() else 'cpu')
     print('device: {}'.format(device))
@@ -92,9 +92,9 @@ def main(args):
 
         epoch_time_end = time.perf_counter()
         print(
-            '[{}] data load time: {} s., train time: {} s., epoch time: {} s.'.
-            format(epoch, data_load_time, train_time,
-                   epoch_time_end - epoch_time_start))
+            '\n[{}] data load time: {} s., train time: {} s., epoch time: {} s.\n'
+            .format(epoch + 1, data_load_time, train_time,
+                    epoch_time_end - epoch_time_start))
 
         total_data_load_time += data_load_time
 
