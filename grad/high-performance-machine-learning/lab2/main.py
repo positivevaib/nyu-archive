@@ -34,85 +34,148 @@ def main(args):
     # setup neural net, training loss function and optimization algorithm
     device = torch.device(
         'cuda:0' if args.cuda and torch.cuda.is_available() else 'cpu')
-    print('device: {}'.format(device))
+    print('\ndevice: {}'.format(device))
 
-    net = resnet.ResNet18().to(device)
+    net = resnet.ResNet18(args.batch_norm).to(device)
+
+    print('\ntotal trainable parameters: {}'.format(
+        sum(param.numel() for param in net.parameters()
+            if param.requires_grad)))  # Q3/Q4
 
     criterion = nn.CrossEntropyLoss()
 
     optimizers_dict = {
-        'SGD':
+        'sgd':
         optim.SGD(net.parameters(), lr=0.1, momentum=0.9, weight_decay=0.0005),
-        'Nesterov':
+        'nesterov':
         optim.SGD(net.parameters(),
                   lr=0.1,
                   momentum=0.9,
                   weight_decay=0.0005,
                   nesterov=True),
-        'Adagrad':
+        'adagrad':
         optim.Adagrad(net.parameters(), lr=0.1, weight_decay=0.0005),
-        'Adadelta':
+        'adadelta':
         optim.Adadelta(net.parameters(), lr=0.1, weight_decay=0.0005),
-        'Adam':
+        'adam':
         optim.Adam(net.parameters(), lr=0.1, weight_decay=0.0005)
     }
     optimizer = optimizers_dict[args.optim]
+    print('\noptimizer: {}'.format(args.optim))
 
-    # train and output minibatch training loss, minibatch top-1 training accuracy and time measurements
-    print('\ntraining')
+    # train
+    print('\ntraining\n')
 
-    total_data_load_time = 0.0
-    for epoch in range(5):
-        epoch_time_start = time.perf_counter()
-        data_load_time = 0.0
-        train_time = 0.0
+    tot_epoch_time = 0.0  # C5
+    tot_dataloader_time = 0.0  # C3/C4
+    tot_train_time = 0.0  # C4
+    for epoch in range(args.num_epochs):
+        epoch_start = time.perf_counter()  # C2/C5
+        dataloader_time = 0.0  # C2/C3/C4
+        train_time = 0.0  # C2/C4
+        running_loss = 0.0  # C6/C7
+        running_correct = 0  # C6/C7
+        running_total = 0  # C6/C7
+        dataloader_start = time.perf_counter()  # C2/C3/C4
         for i, data in enumerate(trainloader, 0):
-            data_time_start = time.perf_counter()
-            inputs, labels = data
-            data_time_end = time.perf_counter()
-            data_load_time += data_time_end - data_time_start
+            inputs, labels = data[0].to(device), data[1].to(device)
+            dataloader_time += time.perf_counter(
+            ) - dataloader_start  # C2/3/C4
 
             optimizer.zero_grad()
 
-            train_time_start = time.perf_counter()
+            train_start = time.perf_counter()  # C2/C4
             outputs = net(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-            train_time_end = time.perf_counter()
-            train_time += train_time_end - train_time_start
+            train_time += time.perf_counter() - train_start  # C2/C4
+
+            running_loss += loss.item()  # C6/C7
 
             _, predicted = torch.max(outputs.data, 1)
             correct = (predicted == labels).sum().item()
             total = labels.size(0)
 
-            print('[{}, {}] loss: {}, acc: {}%'.format(epoch + 1, i + 1,
-                                                       loss.item(),
-                                                       correct / total * 100))
+            running_correct += correct  # C6/C7
+            running_total += total  # C6/C7
 
-        epoch_time_end = time.perf_counter()
-        print(
-            '\n[{}] data load time: {} s., train time: {} s., epoch time: {} s.\n'
-            .format(epoch + 1, data_load_time, train_time,
-                    epoch_time_end - epoch_time_start))
+            if args.mode == 1:
+                print(
+                    '[epoch {}, mini-batch {}] training loss: {}, top-1 training accuracy: {}%'
+                    .format(epoch + 1, i + 1, loss.item(),
+                            correct / total * 100))
 
-        total_data_load_time += data_load_time
+            dataloader_start = time.perf_counter()  # C2/C3/C4
+
+        epoch_end = time.perf_counter()  # C2/C5
+
+        if args.mode == 2:  # C2
+            print(
+                '[epoch {}] data loading time: {} s., training (mini-batch calculation) time: {} s., total running time: {} s.'
+                .format(epoch + 1, dataloader_time, train_time,
+                        epoch_end - epoch_start))
+
+        if args.mode == 6:  # C6
+            print(
+                '\n[epoch {}] training time: {}, training loss: {}, top-1 training accuracy: {}%'
+                .format(epoch + 1, train_time, running_loss / len(trainloader),
+                        running_correct / running_total * 100))
+
+        if args.mode == 7:  # C7
+            print(
+                '\n[epoch {}] training loss: {}, top-1 training accuracy: {}%'.
+                format(epoch + 1, running_loss / len(trainloader),
+                       running_correct / running_total * 100))
+
+        tot_epoch_time += epoch_end - epoch_start  # C5
+        tot_dataloader_time += dataloader_time  # C3/C4
+        tot_train_time += train_time  # C4
 
     print('\nfinished training')
+
+    if args.mode == 3:  # C3
+        print('\ntotal DataLoader time: {} s.'.format(tot_dataloader_time))
+
+    if args.mode == 4:  # C4
+        print('\ntotal data loading time: {} s., total computing time: {} s.'.
+              format(tot_dataloader_time, tot_train_time))
+
+    if args.mode == 5:  # C5
+        print('avgerage running time over 5 epochs: {} s. per epoch'.format(
+            tot_epoch_time / 5))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('path', type=str, help='data path')
+    parser.add_argument('--batch_norm',
+                        action='store_true',
+                        help='use batch norm layers')
     parser.add_argument('--cuda', action='store_true', help='use GPU')
+    parser.add_argument(
+        '--mode',
+        type=int,
+        default=1,
+        help=
+        'type of output specific to coding exercises - 1, 2, 3, 4, 5, 6, 7',
+        metavar='')
+    parser.add_argument('--num_epochs',
+                        type=int,
+                        default=5,
+                        help='number of training epochs',
+                        metavar='')
     parser.add_argument('--num_workers',
                         type=int,
                         default=2,
-                        help='number of dataloader workers')
-    parser.add_argument('--optim',
-                        type=str,
-                        default='SGD',
-                        help='type of optimizer')
+                        help='number of dataloader workers',
+                        metavar='')
+    parser.add_argument(
+        '--optim',
+        type=str,
+        default='sgd',
+        help='type of optimizer - sgd, nesterov, adagrad, adadelta, adam',
+        metavar='')
 
     args = parser.parse_args()
     main(args)
