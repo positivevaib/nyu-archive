@@ -118,21 +118,24 @@ def main(args):
 
         if args.mode == 6:  # C6
             print(
-                '\n[epoch {}] training time: {}, training loss: {}, top-1 training accuracy: {}%'
+                '[epoch {}] training time: {}, training loss: {}, top-1 training accuracy: {}%'
                 .format(epoch + 1, train_time, running_loss / len(trainloader),
                         running_correct / running_total * 100))
 
         if args.mode == 7:  # C7
-            print(
-                '\n[epoch {}] training loss: {}, top-1 training accuracy: {}%'.
-                format(epoch + 1, running_loss / len(trainloader),
-                       running_correct / running_total * 100))
+            print('[epoch {}] training loss: {}, top-1 training accuracy: {}%'.
+                  format(epoch + 1, running_loss / len(trainloader),
+                         running_correct / running_total * 100))
 
         tot_epoch_time += epoch_end - epoch_start  # C5
         tot_dataloader_time += dataloader_time  # C3/C4
         tot_train_time += train_time  # C4
 
     print('\nfinished training')
+
+    print('\ntotal number of gradients: {}'.format(
+        sum(param.grad.numel() for param in net.parameters()
+            if param.requires_grad)))  # Q3/Q4
 
     if args.mode == 3:  # C3
         print('\ntotal DataLoader time: {} s.'.format(tot_dataloader_time))
@@ -142,7 +145,7 @@ def main(args):
               format(tot_dataloader_time, tot_train_time))
 
     if args.mode == 5:  # C5
-        print('avgerage running time over 5 epochs: {} s. per epoch'.format(
+        print('\naverage running time over 5 epochs: {} s. per epoch'.format(
             tot_epoch_time / 5))
 
 
