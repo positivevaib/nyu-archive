@@ -89,7 +89,7 @@ void initArrs(double * hostI, double * hostPI, double * hostF, struct dimensions
         for (k = 0; k < dims->K; k++)
             for (i = 0; i < dims->FH; i++)
                 for (j = 0; j < dims->FW; j++)
-                    hostF[(k * dims->C * dims->FH * dims->FW) + (c * dims->FH * dims->FW) + (i * dims->FW) + j] = (c + k) * (i + j);
+                    hostF[(k * dims->C * dims->FH * dims->FW) + (c * dims->FH * dims->FW) + (j * dims->FW) + i] = (c + k) * (i + j);
     }
 }
 
@@ -195,7 +195,7 @@ void C2(struct dimensions * dims, double * hostI, double * hostF, double * copyT
         // Convolution
         cudnnConvolutionDescriptor_t descConv;
         CUDNN_CALL(cudnnCreateConvolutionDescriptor(&descConv));
-        CUDNN_CALL(cudnnSetConvolution2dDescriptor(descConv, 1, 1, 1, 1, 1, 1, CUDNN_CROSS_CORRELATION, CUDNN_DATA_DOUBLE));                             
+        CUDNN_CALL(cudnnSetConvolution2dDescriptor(descConv, 1, 1, 1, 1, 1, 1, CUDNN_CONVOLUTION, CUDNN_DATA_DOUBLE));                             
 
         // Convolution algorithm
         cudnnConvolutionFwdAlgo_t algo;
