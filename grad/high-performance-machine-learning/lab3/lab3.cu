@@ -1,309 +1,413 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <time.h>
 
 #include <cuda.h>
 #include <cudnn.h>
 
+
 #define NANO 1e9
 
-#define CUDNN_CALL(x) do                                                                            \
-{                                                                                                   \
-    cudnnStatus_t ___s = (x);                                                                       \
-    if (___s != CUDNN_STATUS_SUCCESS)                                                               \
-    {                                                                                               \
-        fprintf(stderr, "%s:%d ERROR: %s\n", __FILE__,                                              \
-                        __LINE__, cudnnGetErrorString(___s));                                       \
-        exit(-1);                                                                                   \
-    }                                                                                               \
-} while (0);                                                    
+#define CUDNN_CALL(x) do                                                                        \
+{                                                                                               \
+    cudnnStatus_t ___s = (x);                                                                   \
+    if (___s != CUDNN_STATUS_SUCCESS)                                                           \
+    {                                                                                           \
+        fprintf(stderr, "%s:%d ERROR: %s\n", __FILE__, __LINE__, cudnnGetErrorString(___s));    \
+        exit(-1);                                                                               \
+    }                                                                                           \
+} while(0);                                                                                     \
 
 
 // Forward declarations
-typedef struct dimensions
+void init_I(double *, int, int, int);
+void init_F(double *, int, int, int, int);
+
+double get_checksum(double *, int, int, int);
+
+double c1(int, double *, int, int, int, double *, int, int, int);
+double c2(int, double *, int, int, int, double *, int, int, int); 
+
+__device__ void convolve(int, double *, int, int, int, double *, int, int, double *);
+__global__ void convolve_tiles_with_shared_mem(int, double *, int, int, int, double *, int, int, int, double *);
+
+
+int main(int argc, char * argv[]) 
 {
-    const int C, H, W, PH, PW;
-    const int K, FH, FW;
-};
+    // Initialize dimensions and I and F arrays
+    int C = 3, H = 1024, W = 1024, P = 1;
+    int K = 64, FH = 3, FW = 3;
 
-void initArrs(double *, double *, double *, struct dimensions *);
-void C1(struct dimensions *, double *, double *, double *, double *, double *);
-void C2(struct dimensions *, double *, double *, double *, double *, double *);
+    double I[C * H * W], F[K * C * FH * FW];
+    init_I(I, C, H, W);
+    init_F(F, K, C, FH, FW);
 
-__global__ void convKernel(double *, double *, double *,                                           \
-                            int, int, int, int, int, int, int);
-
-
-int main(int argc, char * argv[])
-{
-    // Initialize dimensions struct
-    struct dimensions dims = {3, 1024, 1024, 1026, 1026, 64, 3, 3};
+    // Execute programs and output results
+    double c1_kernel_time = 0; 
+    double c2_kernel_time = 0; 
     
-    // Initialize image (with and without padding) and filter arrays
-    double hostI[dims.C * dims.H * dims.W], hostPI[dims.C * dims.PH * dims.PW], hostF[dims.K * dims.C * dims.FH * dims.FW];
-    initArrs(hostI, hostPI, hostF, &dims);
-
-    // Declare arrays to store time measurements
-    double copyToDevTimes[10], convTimes[10], copyToHostTimes[10];
-
-    // Execute programs
-    printf("C1");
-    C1(&dims, hostPI, hostF, copyToDevTimes, convTimes, copyToHostTimes);
-
-    printf("\n\nC2");
-    C2(&dims, hostI, hostF, copyToDevTimes, convTimes, copyToHostTimes);
-
-    // Compute averages
-    double avg[2];
-
+    int runs = 5;
+    
     int i;
-    for (i = 0; i < 2; i++)
-        avg[i] = 0;
 
-    for (i = 0; i < (2 * 5); i++)
-        avg[i / 5] += (convTimes[i] / 5);
-
-    // Print output
-    printf("\n\n<Time>: Conv %lf s. cuDNN %lf s.\n", avg[0], avg[1]);
-
-    return 0;
-}
-
-
-void initArrs(double * hostI, double * hostPI, double * hostF, struct dimensions * dims)
-{
-    int c, x, y, k, i, j; 
-    for (c = 0; c < dims->C; c++)
+    printf("C2");
+    for (i = 0; i < runs; i++)
     {
-        for (x = 0; x < dims->PH; x++)
-            for (y = 0; y < dims->PH; y++)
-                hostPI[(c * dims->PH * dims->PW) + (x * dims->PW) + y] = 0;
-
-        for (x = 0; x < dims->H; x++)
-            for (y = 0; y < dims->W; y++)
-            {
-                hostI[(c * dims->H * dims->W) + (x * dims->W) + y] = c * (x + y);
-                hostPI[(c * dims->PH * dims->PW) + ((x + 1) * dims->PW) + (y + 1)] = c * (x + y);
-            }
-
-        for (k = 0; k < dims->K; k++)
-            for (i = 0; i < dims->FH; i++)
-                for (j = 0; j < dims->FW; j++)
-                    hostF[(k * dims->C * dims->FH * dims->FW) + (c * dims->FH * dims->FW) + (j * dims->FW) + i] = (c + k) * (i + j);
+        c2_kernel_time += c2(C, I, H, W, P, F, K, FH, FW);
     }
-}
 
-
-void C1(struct dimensions * dims, double * hostPI, double * hostF, double * copyToDevTimes, double * convTimes, double * copyToHostTimes)
-{
-    // Declare timespec structs 
-    struct timespec start, end;
-
-    // Declare host output array and device arrays
-    double hostO[dims->K * dims->H * dims->W], * devPI, * devF, * devO;
-
-    int i, x, y, c, k;
-    for (i = 0; i < 5; i++)
+    printf("\n\nC1");
+    for (i = 0; i < runs; i++)
     {
-        // Allocate device memory and transfer data to device
-        cudaMalloc(&devPI, sizeof(hostPI));
-        cudaMalloc(&devF, sizeof(hostF));
-        cudaMalloc(&devO, sizeof(hostO));
-        
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        cudaMemcpy(devPI, hostPI, sizeof(hostPI), cudaMemcpyHostToDevice);
-        clock_gettime(CLOCK_MONOTONIC, &end);
-
-        copyToDevTimes[i] = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec)/NANO);
-
-        cudaMemcpy(devF, hostF, sizeof(hostF), cudaMemcpyHostToDevice);
-
-        // Set device grid and block dimensions
-        dim3 dimGrid(dims->K, dims->H);
-        dim3 dimBlock(dims->W / 2);
-
-        // Invoke kernel
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        convKernel<<<dimGrid, dimBlock, ((dims->C * dims->FH * (dims->PW / 2)) + (dims->C * dims->FH * dims->FW)) * sizeof(double)>>>(devPI, devF, devO, dims->C, dims->H, dims->W, dims->PH, dims->PW, dims->FH, dims->FW);
-        cudaDeviceSynchronize();
-        clock_gettime(CLOCK_MONOTONIC, &end);
-
-        convTimes[i] = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec)/NANO);
-
-        // Transfer output data from device
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        cudaMemcpy(hostO, devO, sizeof(hostO), cudaMemcpyDeviceToHost);
-        clock_gettime(CLOCK_MONOTONIC, &end);
-
-        copyToHostTimes[i] = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec)/NANO);
-
-        // Free device memory
-        cudaFree(devPI);
-        cudaFree(devF);
-        cudaFree(devO);
-
-        // Compute checksums
-        double checksumPI = 0;
-        for (c = 0; c < dims->C; c++)
-            for (x = 0; x < dims->PH; x++)
-                for (y = 0; y < dims->PW; y++)
-                    checksumPI += hostPI[(c * dims->PH * dims->PW) + (x * dims->PW) + y];
-
-        double checksumO = 0;
-        for (k = 0; k < dims->K; k++)
-            for (x = 0; x < dims->H; x++)
-                for (y = 0; y < dims->W; y++)
-                    checksumO += hostO[(k * dims->H * dims->W) + (x * dims->W) + y];
-
-        // Print output 
-        printf("\n\nI = checksum: %lf\nCopy host -> dev kernel: %lf s.\ntime kernel: %lf s.\nCopy dev -> host kernel: %lf s.\nCUDA O = checksum: %lf", checksumPI, copyToDevTimes[i], convTimes[i], copyToHostTimes[i], checksumO);
+        c1_kernel_time += c1(C, I, H, W, P, F, K, FH, FW);
     }
+
+    printf("\n\n<Time>: Conv %lf s. cuDNN %lf s.\n", c1_kernel_time / runs, c2_kernel_time / runs);
 }
 
-void C2(struct dimensions * dims, double * hostI, double * hostF, double * copyToDevTimes, double * convTimes, double * copyToHostTimes)
+
+// Function to initialize I array
+void init_I(double * I, int C, int H, int W)
 {
-    // Declare timespec structs 
-    struct timespec start, end;
-
-    // Declare host output array, workspace and device arrays
-    double hostO[dims->K * dims->H * dims->W];
-    void * workspace, * devI, * devF, * devO;
-
-    int i, x, y, c, k;
-    for (i = 0; i < 5; i++)
-    {
-        // Create cuDNN context
-        cudnnHandle_t cudnn;
-        CUDNN_CALL(cudnnCreate(&cudnn));
-
-        // Create and configure descriptors
-        // Input
-        cudnnTensorDescriptor_t descI;
-        CUDNN_CALL(cudnnCreateTensorDescriptor(&descI));
-        CUDNN_CALL(cudnnSetTensor4dDescriptor(descI, CUDNN_TENSOR_NCHW, CUDNN_DATA_DOUBLE, 1, dims->C, dims->H, dims->W));
-    
-        // Filter
-        cudnnFilterDescriptor_t descF;
-        CUDNN_CALL(cudnnCreateFilterDescriptor(&descF));
-        CUDNN_CALL(cudnnSetFilter4dDescriptor(descF, CUDNN_DATA_DOUBLE, CUDNN_TENSOR_NCHW, dims->K, dims->C, dims->FH, dims->FW));
-        
-        // Output
-        cudnnTensorDescriptor_t descO;
-        CUDNN_CALL(cudnnCreateTensorDescriptor(&descO));
-        CUDNN_CALL(cudnnSetTensor4dDescriptor(descO, CUDNN_TENSOR_NCHW, CUDNN_DATA_DOUBLE, 1, dims->K, dims->H, dims->W));
-
-        // Convolution
-        cudnnConvolutionDescriptor_t descConv;
-        CUDNN_CALL(cudnnCreateConvolutionDescriptor(&descConv));
-        CUDNN_CALL(cudnnSetConvolution2dDescriptor(descConv, 1, 1, 1, 1, 1, 1, CUDNN_CONVOLUTION, CUDNN_DATA_DOUBLE));                             
-
-        // Convolution algorithm
-        cudnnConvolutionFwdAlgo_t algo;
-        CUDNN_CALL(cudnnGetConvolutionForwardAlgorithm(cudnn, descI, descF, descConv, descO, CUDNN_CONVOLUTION_FWD_PREFER_FASTEST, 0, &algo));
-
-        // Determine device memory requirement
-        size_t workspaceSize;
-        CUDNN_CALL(cudnnGetConvolutionForwardWorkspaceSize(cudnn, descI, descF, descConv, descO, algo, &workspaceSize));
-
-        // Allocate device memory and transfer data to device
-        cudaMalloc(&workspace, workspaceSize);
-        cudaMalloc(&devI, sizeof(hostI));
-        cudaMalloc(&devF, sizeof(hostF));
-        cudaMalloc(&devO, sizeof(hostO));
-
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        cudaMemcpy(devI, hostI, sizeof(hostI), cudaMemcpyHostToDevice);
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        
-        copyToDevTimes[5 + i] = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec)/NANO);
-
-        cudaMemcpy(devF, hostF, sizeof(hostF), cudaMemcpyHostToDevice);
-
-        // Execute convolution
-        const float alpha = 1;
-        const float beta = 0;
-
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        CUDNN_CALL(cudnnConvolutionForward(cudnn, &alpha, descI, devI, descF, devF, descConv, algo, &workspace, workspaceSize, &beta, descO, devO));
-        clock_gettime(CLOCK_MONOTONIC, &end);
-
-        convTimes[5 + i] = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec)/NANO);
-
-        // Transfer data from device
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        cudaMemcpy(hostO, devO, sizeof(hostO), cudaMemcpyDeviceToHost);
-        clock_gettime(CLOCK_MONOTONIC, &end);
-
-        copyToHostTimes[5 + i] = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec)/NANO);
-
-        // Free device memory and destroy descriptors
-        cudaFree(workspace);
-        cudaFree(devI);
-        cudaFree(devF);
-        cudaFree(devO);
-
-        cudnnDestroyTensorDescriptor(descI);
-        cudnnDestroyFilterDescriptor(descF);
-        cudnnDestroyTensorDescriptor(descO);
-        cudnnDestroyConvolutionDescriptor(descConv);
-
-        cudnnDestroy(cudnn);
-
-        // Compute checksums
-        double checksumI = 0;
-        for (c = 0; c < dims->C; c++)
-            for (x = 0; x < dims->H; x++)
-                for (y = 0; y < dims->W; y++)
-                    checksumI += hostI[(c * dims->H * dims->W) + (x * dims->W) + y];
-
-        double checksumO = 0;
-        for (k = 0; k < dims->K; k++)
-            for (x = 0; x < dims->H; x++)
-                for (y = 0; y < dims->W; y++)
-                    checksumO += hostO[(k * dims->H * dims->W) + (x * dims->W) + y];
-
-        // Print output 
-        printf("\n\nI = checksum: %lf\nCopy host -> dev kernel: %lf s.\ntime kernel: %lf s.\nCopy dev -> host kernel: %lf s.\nCUDA O = checksum: %lf", checksumI, copyToDevTimes[i], convTimes[i], copyToHostTimes[i], checksumO);
-    }
+    int c, h, w;
+    for (c = 0; c < C; c++)
+        for (h = 0; h < H; h++)
+            for (w = 0; w < W; w++)
+                I[(c * H * W) + (h * W) + w] = c * (h + w);
 }
 
-// Convolution kernel
-__global__ void convKernel(double * PI, double * F, double * O, int C, int H, int W, int PH, int PW, int FH, int FW)
-{
-    // Declare shared arrays
-    extern __shared__ double tile[];
-    double * tilePI = tile;
-    double * tileF = (double *) &tilePI[C * FH * (PW / 2)];
 
-    // Transfer tiles to shared memory
-    int half, c, h, w, i;
-    for (half = 0; half < 2; half++)
-    {
+// Function to initialize F array
+void init_F(double * F, int K, int C, int H, int W)
+{
+    int k, c, h, w;
+    for (k = 0; k < K; k++)
         for (c = 0; c < C; c++)
-            for (h = 0; h < FH; h++)
+            for (h = 0; h < H; h++)
+                for (w = 0; w < W; w++)
+                    F[(k * C * H * W) + (c * H * W) + (h * W) + w] = (c + k) * (h + w);
+}
+
+
+double c1(int C, double * I, int H, int W, int P, double * F, int K, int FH, int FW)
+{
+    // Determine array sizes, declare device arrays and allocate device memory
+    size_t I_size = C * H * W * sizeof(double); 
+    size_t F_size = K * C * FH * FW * sizeof(double); 
+    size_t O_size = K * H * W * sizeof(double);
+
+    double O[O_size], * dev_I, * dev_F, * dev_O;
+
+    cudaMalloc(&dev_I, I_size);
+    cudaMalloc(&dev_F, F_size);
+    cudaMalloc(&dev_O, O_size);
+
+    struct timespec start, end;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    cudaMemcpy(dev_I, I, I_size, cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double to_dev_time = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec) / NANO);
+
+    cudaMemcpy(dev_F, F, F_size, cudaMemcpyHostToDevice);
+        
+    // Set device properties and call kernel
+    int block_size = 4;
+    dim3 dimGrid(ceil(H / block_size), ceil(W / block_size));
+    dim3 dimBlock(block_size, block_size, K);
+
+    size_t tile_size = C * (block_size + (2 * P)) * (block_size + (2 * P));
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    convolve_tiles_with_shared_mem<<<dimGrid, dimBlock, tile_size>>>(C, dev_I, H, W, P, dev_F, K, FH, FW, dev_O);
+    cudaDeviceSynchronize();
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double kernel_time = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec) / NANO);
+
+    // Copy output array to host, free device memory and output results
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    cudaMemcpy(O, dev_O, O_size, cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double to_host_time = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec) / NANO);
+
+    cudaFree(dev_I);
+    cudaFree(dev_F);
+    cudaFree(dev_O);
+
+    double I_checksum = get_checksum(I, C, H, W);
+    double O_checksum = get_checksum(O, K, H, W);
+
+    printf("\n\nI = checksum: %lf\nCopy host -> dev kernel: %lf s.\ntime kernel: %lf s.\nCopy dev -> host kernel: %lf s.\nCUDA O = checksum:%lf", I_checksum, to_dev_time, kernel_time, to_host_time, O_checksum);
+
+    return kernel_time;
+}
+
+
+double c2(int C, double * I, int H, int W, int P, double * F, int K, int FH, int FW)
+{
+    // Determine array sizes, declare device arrays and workspace and allocate device memory
+    size_t I_size = C * H * W * sizeof(double); 
+    size_t F_size = K * C * FH * FW * sizeof(double); 
+    size_t O_size = K * H * W * sizeof(double);
+
+    double O[O_size], * dev_I, * dev_F, * dev_O;
+    void * workspace;
+
+    cudaMalloc(&dev_I, I_size);
+    cudaMalloc(&dev_F, F_size);
+    cudaMalloc(&dev_O, O_size);
+
+    struct timespec start, end;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    cudaMemcpy(dev_I, I, I_size, cudaMemcpyHostToDevice);
+    cudaDeviceSynchronize();
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double to_dev_time = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec) / NANO);
+
+    cudaMemcpy(dev_F, F, F_size, cudaMemcpyHostToDevice);
+
+    // Setup and execute CUDNN based convolution 
+    cudnnHandle_t cudnn;
+    CUDNN_CALL(cudnnCreate(&cudnn));
+
+    cudnnTensorDescriptor_t in_desc;
+    CUDNN_CALL(cudnnCreateTensorDescriptor(&in_desc));
+    CUDNN_CALL(cudnnSetTensor4dDescriptor(in_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_DOUBLE, 1, C, H, W));
+
+    cudnnFilterDescriptor_t filter_desc;
+    CUDNN_CALL(cudnnCreateFilterDescriptor(&filter_desc));
+    CUDNN_CALL(cudnnSetFilter4dDescriptor(filter_desc, CUDNN_DATA_DOUBLE, CUDNN_TENSOR_NCHW, K, C, FH, FW));
+
+    cudnnTensorDescriptor_t out_desc;
+    CUDNN_CALL(cudnnCreateTensorDescriptor(&out_desc));
+    CUDNN_CALL(cudnnSetTensor4dDescriptor(out_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_DOUBLE, 1, K, H, W));
+
+    cudnnConvolutionDescriptor_t conv_desc;
+    CUDNN_CALL(cudnnCreateConvolutionDescriptor(&conv_desc));
+    CUDNN_CALL(cudnnSetConvolution2dDescriptor(conv_desc, P, P, 1, 1, 1, 1, CUDNN_CONVOLUTION, CUDNN_DATA_DOUBLE));
+
+    cudnnConvolutionFwdAlgo_t conv_algo;
+    CUDNN_CALL(cudnnGetConvolutionForwardAlgorithm(cudnn, in_desc, filter_desc, conv_desc, out_desc, CUDNN_CONVOLUTION_FWD_PREFER_FASTEST, 0, &conv_algo));
+
+    size_t workspace_size = 0;
+    CUDNN_CALL(cudnnGetConvolutionForwardWorkspaceSize(cudnn, in_desc, filter_desc, conv_desc, out_desc, conv_algo, &workspace_size));
+	cudaMallocManaged(&workspace, workspace_size);
+
+    double alpha = 1, beta = 0;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    CUDNN_CALL(cudnnConvolutionForward(cudnn, &alpha, in_desc, dev_I, filter_desc, dev_F, conv_desc, conv_algo, workspace, workspace_size, &beta, out_desc, dev_O));
+    cudaDeviceSynchronize();
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double kernel_time = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec) / NANO);
+
+    // Copy output array to host, free device memory and output results
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    cudaMemcpy(O, dev_O, O_size, cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    double to_host_time = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec) / NANO);
+
+    cudaFree(dev_I);
+    cudaFree(dev_F);
+    cudaFree(dev_O);
+    cudaFree(workspace);
+
+	cudnnDestroyTensorDescriptor(in_desc);
+	cudnnDestroyFilterDescriptor(filter_desc);
+	cudnnDestroyTensorDescriptor(out_desc);
+	cudnnDestroyConvolutionDescriptor(conv_desc);
+	cudnnDestroy(cudnn);
+
+    double I_checksum = get_checksum(I, C, H, W);
+    double O_checksum = get_checksum(O, K, H, W);
+
+    printf("\n\nI = checksum: %lf\nCopy host -> dev kernel: %lf s.\ntime cudnn: %lf s.\nCopy dev -> host kernel: %lf s.\nCUDA O = checksum:%lf", I_checksum, to_dev_time, kernel_time, to_host_time, O_checksum);
+
+    return kernel_time;
+}
+
+
+// Function to compute the sum of all elements of I and O arrays
+double get_checksum(double * tensor, int C, int H, int W)
+{
+    double checksum = 0;
+
+    int c, h, w;
+    for (c = 0; c < C; c++)
+        for (h = 0; h < H; h++)
+            for (w = 0; w < W; w++)
+                checksum += tensor[(c * H * W) + (h * W) + w];
+
+    return checksum;
+}
+
+
+// CUDA kernel to perform convolution using tiles and shared memory
+__global__ void convolve_tiles_with_shared_mem(int C, double * I, int H, int W, int P, double * F, int K, int FH, int FW, double * O)
+{
+    // Declare and populate tile array in shared memory 
+    extern __shared__ double tile[];
+
+    int TH = blockDim.x + (2 * P);
+    int TW = blockDim.y + (2 * P);
+
+    int k = threadIdx.z;
+    int h = (blockIdx.x * blockDim.x) + threadIdx.x;
+    int w = (blockIdx.y * blockDim.y) + threadIdx.y;
+
+    if (k == 0 && h < H && w < W) 
+    {
+        int th = threadIdx.x + P;
+        int tw = threadIdx.y + P;
+
+        int c;
+        for (c = 0; c < C; c++)
+        {
+            tile[(c * TH * TW) + (th * TW) + tw] = I[(c * H * W) + (h * W) + w];
+
+            int pad;
+
+            for (pad = 1; pad <= P; pad++)
             {
-                i = threadIdx.x;
-                while (i < (PW / 2))
+                // Fill top rows and corners
+                if (threadIdx.x == 0)
                 {
-                    tilePI[(c * FH * (PW / 2)) + (h * (PW / 2)) + i] = PI[(c * PH * PW) + (((blockIdx.y * FH) + h) * PW) + ((half * blockDim.x) + i)];
+                    if (h > 0)
+                        tile[(c * TH * TW) + ((th - pad) * TW) + tw] = I[(c * H * W) + ((h - pad) * W) + w];
+                    else
+                        tile[(c * TH * TW) + ((th - pad) * TW) + tw] = 0;
 
-                    if (i < FW)
-                        tileF[(c * FH * FW) + (h * FW) + i] = F[(blockIdx.x * C * FH * FW) + (c * FH * FW) + (h * FW) + i];
+                    // Top left corner
+                    if (threadIdx.y == 0)
+                    {
+                        int h_pad, w_pad;
+                        for (h_pad = pad; h_pad > 0; h_pad--)
+                            for (w_pad = pad; w_pad > 0; w_pad--)
+                            {
+                                if (h > 0 && w > 0)
+                                    tile[(c * TH * TW) + ((th - h_pad) * TW) + (tw - w_pad)] = I[(c * H * W) + ((h - h_pad) * W) + (w - w_pad)];
+                                else
+                                    tile[(c * TH * TW) + ((th - h_pad) * TW) + (tw - w_pad)] = 0;
+                            }
+                    }
 
-                    i += blockDim.x;
+                    // Top right corner
+                    if (threadIdx.y == (blockDim.y - 1))
+                    {
+                        int h_pad, w_pad;
+                        for (h_pad = pad; h_pad > 0; h_pad--)
+                            for (w_pad = pad; w_pad > 0; w_pad--)
+                            {
+                                if (h > 0 && w < (W - 1))
+                                    tile[(c * TH * TW) + ((th - h_pad) * TW) + (tw + w_pad)] = I[(c * H * W) + ((h - h_pad) * W) + (w + w_pad)];
+                                else
+                                    tile[(c * TH * TW) + ((th - h_pad) * TW) + (tw + w_pad)] = 0;
+                            }
+                    }
+                }
+
+                // Fill bottom rows and corners
+                if (threadIdx.x == (blockDim.x - 1))
+                {
+                    if (h < (H - 1))
+                        tile[(c * TH * TW) + ((th + pad) * TW) + tw] = I[(c * H * W) + ((h + pad) * W) + w];
+                    else
+                        tile[(c * TH * TW) + ((th + pad) * TW) + tw] = 0;
+
+                    // Bottom left corner
+                    if (threadIdx.y == 0)
+                    {
+                        int h_pad, w_pad;
+                        for (h_pad = pad; h_pad > 0; h_pad--)
+                            for (w_pad = pad; w_pad > 0; w_pad--)
+                            {
+                                if (h < (H - 1) && w > 0)
+                                    tile[(c * TH * TW) + ((th + h_pad) * TW) + (tw - w_pad)] = I[(c * H * W) + ((h + h_pad) * W) + (w - w_pad)];
+                                else
+                                    tile[(c * TH * TW) + ((th + h_pad) * TW) + (tw - w_pad)] = 0;
+                            }
+                    }
+
+                    // Bottom right corner
+                    if (threadIdx.y == (blockDim.y - 1))
+                    {
+                        int h_pad, w_pad;
+                        for (h_pad = pad; h_pad > 0; h_pad--)
+                            for (w_pad = pad; w_pad > 0; w_pad--)
+                            {
+                                if (h < (H - 1) && w < (W - 1))
+                                    tile[(c * TH * TW) + ((th + h_pad) * TW) + (tw + w_pad)] = I[(c * H * W) + ((h + h_pad) * W) + (w - w_pad)];
+                                else
+                                    tile[(c * TH * TW) + ((th + h_pad) * TW) + (tw + w_pad)] = 0;
+                            }
+                    }
+                }
+
+                // Fill left columns
+                if (threadIdx.y == 0)
+                {
+                    if (w > 0)
+                        tile[(c * TH * TW) + (th * TW) + (tw - pad)] = I[(c * H * W) + (h * W) + (w - pad)];
+                    else
+                        tile[(c * TH * TW) + (th * TW) + (tw - pad)] = 0;
+                }
+
+                // Fill right columns
+                if (threadIdx.y == (blockDim.y - 1))
+                {
+                    if (w < (W - 1))
+                        tile[(c * TH * TW) + (th * TW) + (tw + pad)] = I[(c * H * W) + (h * W) + (w + pad)];
+                    else
+                        tile[(c * TH * TW) + (th * TW) + (tw + pad)] = 0;
                 }
             }
-        __syncthreads();
-
-        // Perform convolution
-        double o = 0;
-
-        for (c = 0; c < C; c++)
-            for (h = 0; h < FH; h++)
-                for (w = 0; w < FW; w++)
-                    o += tilePI[(c * FH * (PW / 2)) + (h * (PW / 2)) + ((threadIdx.x * FW) + w)] * tileF[(c * FH * FW) + (h * FW) + w];
-
-        O[(blockIdx.x * H * W) + (blockIdx.y * W) + ((half * blockDim.x) + threadIdx.x)] = o;
-        __syncthreads();
+        }
     }
+    __syncthreads();
+
+    // Perform convolution
+    convolve(C, tile, H, W, P, F, FH, FW, O);
 }
+
+
+// CUDA kernel to perform individual convolution computations
+__device__ void convolve(int C, double * I, int H, int W, int P, double * F, int FH, int FW, double * O)
+{
+    double val = 0;
+
+    int k = threadIdx.z; 
+    int h = (blockIdx.x * blockDim.x) + threadIdx.x - P;
+    int w = (blockIdx.y * blockDim.y) + threadIdx.y - P;
+
+    int c, fh, fw, i, j;
+    for (c = 0; c < C; c++)
+        for (fh = 0; fh < FH; fh++)
+        {
+            i = h + fh;
+            for (fw = 0; fw < FW; fw++)
+            {
+                j = w + fw;
+
+                if (i < 0 || i >= H || j < 0 || j >= W)
+                    continue;
+
+                val += I[(c * H * W) + (i * W) + j] * F[(k * C * FH * FW) + (c * FH * FW) + ((FH - 1 - fh) * FW) + (FW - 1 - fw)];
+            }
+        }
+
+    h += P;
+    w += P;
+    O[(k * H * W) + (h * W) + w] = val;
+}
+
