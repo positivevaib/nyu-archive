@@ -143,7 +143,7 @@ double c1(int C, double * I, int H, int W, int P, double * F, int K, int FH, int
     double I_checksum = get_checksum(I, C, H, W);
     double O_checksum = get_checksum(O, K, H, W);
 
-    printf("\n\nI = checksum: %lf\nCopy host -> dev kernel: %lf s.\ntime kernel: %lf s.\nCopy dev -> host kernel: %lf s.\nCUDA O = checksum:%lf", I_checksum, to_dev_time, kernel_time, to_host_time, O_checksum);
+    printf("\n\nI = checksum: %lf\nCopy host -> dev kernel: %lf s.\ntime kernel: %lf s.\nCopy dev -> host kernel: %lf s.\nCUDA O = checksum: %lf", I_checksum, to_dev_time, kernel_time, to_host_time, O_checksum);
 
     return kernel_time;
 }
@@ -232,7 +232,7 @@ double c2(int C, double * I, int H, int W, int P, double * F, int K, int FH, int
     double I_checksum = get_checksum(I, C, H, W);
     double O_checksum = get_checksum(O, K, H, W);
 
-    printf("\n\nI = checksum: %lf\nCopy host -> dev kernel: %lf s.\ntime cudnn: %lf s.\nCopy dev -> host kernel: %lf s.\nCUDA O = checksum:%lf", I_checksum, to_dev_time, kernel_time, to_host_time, O_checksum);
+    printf("\n\nI = checksum: %lf\nCopy host -> dev kernel: %lf s.\ntime cudnn: %lf s.\nCopy dev -> host kernel: %lf s.\nCUDA O = checksum: %lf", I_checksum, to_dev_time, kernel_time, to_host_time, O_checksum);
 
     return kernel_time;
 }
