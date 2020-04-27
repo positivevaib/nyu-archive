@@ -1,5 +1,6 @@
 # import dependencies
 import argparse
+import math
 import time
 
 import torch
@@ -103,7 +104,9 @@ def main(args):
                     run_time - (args.baseline / torch.cuda.device_count())))
             elif args.mode == 3.2:
                 print('bandwidth utilization: {} GB/S.'.format(
-                    (2 * len(trainset) *
+                    (2 * math.ceil(
+                        len(trainset) /
+                        (torch.cuda.device_count() * args.batch_size)) *
                      (sum(param.numel() for param in net.parameters()
                           if param.requires_grad) + bn_activations + 1) *
                      (torch.cuda.device_count() - 1) * 4 / 1e9) /
