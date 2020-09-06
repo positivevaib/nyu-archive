@@ -18,6 +18,7 @@ public class MaxTemperature {
         Job job = new Job();
         job.setJarByClass(MaxTemperature.class);
         job.setJobName("Max Temperature");
+        job.setNumReduceTasks(1);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.addOutputPath(job, new Path(args[1]));
