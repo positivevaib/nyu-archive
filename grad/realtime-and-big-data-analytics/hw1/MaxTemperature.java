@@ -1,12 +1,12 @@
 import java.io.*;
-import java.utils.*;
+import java.util.*;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.lib.input.FileInputFormat;
-import org.apache.hadoop.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class MaxTemperature {
     public static void main(String[] args) throws Exception {
