@@ -21,10 +21,10 @@ public class MaxTemperature {
         job.setNumReduceTasks(1);
 
         FileInputFormat.addInputPath(job, new Path(args[0]));
-        FileOutputFormat.addOutputPath(job, new Path(args[1]));
+        FileOutputFormat.setOutputPath(job, new Path(args[1]));
 
-        job.setMapperClass(maxTemperatureMapper.class);
-        job.setReducerClass(maxTemperatureReducer.class);
+        job.setMapperClass(MaxTemperatureMapper.class);
+        job.setReducerClass(MaxTemperatureReducer.class);
 
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(IntWritable.class);
