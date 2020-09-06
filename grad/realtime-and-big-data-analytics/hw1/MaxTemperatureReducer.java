@@ -1,5 +1,5 @@
 import java.io.*;
-import java.utils.*;
+import java.util.*;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
