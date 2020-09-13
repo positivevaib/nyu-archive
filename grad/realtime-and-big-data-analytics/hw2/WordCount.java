@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.*;
 
-public class JavaWordCount {
+public class WordCount {
     public static void main(String[] args) throws Exception {
         // Read input and output paths
         if (args.length != 2) {
