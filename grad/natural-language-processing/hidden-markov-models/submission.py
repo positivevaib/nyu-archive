@@ -5,7 +5,7 @@ import numpy as np
 def train_and_test(entrain, endev, entest):
     # define constants
     ALPHA = 1e-10
-    LAMBDA = 0.2
+    LAMBDA = 0.4
 
     # read in training data
     train_data = open(entrain, 'r').readlines()
@@ -28,15 +28,12 @@ def train_and_test(entrain, endev, entest):
         if len(word_tag[key]) == 0:
             word_tag[key] = np.array(tags)
 
-    # compute emission probabilities with add-1 smoothing
+    # compute emission probabilities
     emit_probs = np.zeros((len(words), len(tags)))
-    for tag_idx in range(len(tags)):
-        tag = tags[tag_idx]
-        for word_idx in range(len(words)):
-            word = words[word_idx]
-            word_tag_count = len(np.where(np.logical_and(train_data[:, 1] == tag, train_data[:, 0] == word))[0])
-            emit_probs[word_idx][tag_idx] = word_tag_count + 1
-        
+    for i in range(len(train_data)):
+        word, tag = train_data[i]
+        emit_probs[np.where(words == word)[0][0], np.where(tags == tag)[0][0]] += 1
+
     for j in range(len(emit_probs[0])):
         count = np.sum(emit_probs[:, j])
         for i in range(len(emit_probs)):
@@ -54,12 +51,8 @@ def train_and_test(entrain, endev, entest):
 
     # compute transition probabilities with interpolation 
     trans_probs = np.zeros((len(tags), len(tags)))
-    for prev_idx in range(len(tags)):
-        prev_tag = tags[prev_idx]
-        for curr_idx in range(len(tags)):
-            curr_tag = tags[curr_idx]
-            curr_prev_count = len(np.where(np.logical_and(train_data[:-1, 1] == prev_tag, train_data[1:, 1] == curr_tag))[0])
-            trans_probs[curr_idx][prev_idx] = curr_prev_count
+    for prev_tag, curr_tag in zip(train_data[:-1, 1], train_data[1:, 1]):
+        trans_probs[np.where(tags == curr_tag)[0][0], np.where(tags == prev_tag)[0][0]] += 1
 
     for j in range(len(trans_probs[0])):
         count = np.sum(trans_probs[:, j])
